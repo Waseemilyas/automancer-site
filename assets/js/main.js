@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Mobile Menu Toggle ── */
   const hamburger = document.querySelector('.hamburger');
   const mobileMenu = document.querySelector('.mobile-menu');
+  const mobileClose = document.querySelector('.mobile-menu__close');
   if (hamburger && mobileMenu) {
     hamburger.addEventListener('click', () => {
       const isOpen = mobileMenu.classList.toggle('is-open');
@@ -43,14 +44,28 @@ document.addEventListener('DOMContentLoaded', () => {
       hamburger.setAttribute('aria-expanded', isOpen);
     });
 
+    const closeMenu = () => {
+      mobileMenu.classList.remove('is-open');
+      hamburger.classList.remove('is-active');
+      document.body.style.overflow = '';
+      hamburger.setAttribute('aria-expanded', 'false');
+    };
+
     // Close on link click
     mobileMenu.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', () => {
-        mobileMenu.classList.remove('is-open');
-        hamburger.classList.remove('is-active');
-        document.body.style.overflow = '';
-        hamburger.setAttribute('aria-expanded', 'false');
-      });
+      link.addEventListener('click', closeMenu);
+    });
+
+    // Close on X button
+    if (mobileClose) {
+      mobileClose.addEventListener('click', closeMenu);
+    };
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && mobileMenu.classList.contains('is-open')) {
+        closeMenu();
+      }
     });
   }
 

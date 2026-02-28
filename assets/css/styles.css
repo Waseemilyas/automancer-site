@@ -1465,3 +1465,35 @@ main {
     gap: var(--sp-8);
   }
 }
+
+
+/* ── Mobile menu close button ── */
+.mobile-menu__close {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu__close {
+    display: block;
+    position: absolute;
+    top: var(--sp-4);
+    right: var(--sp-4);
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--c-gray-700);
+    border-radius: 50%;
+    color: var(--c-white);
+    font-size: 28px;
+    line-height: 1;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 230;
+  }
+
+  .mobile-menu__close:hover,
+  .mobile-menu__close:focus-visible {
+    border-color: var(--c-white);
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+  }
+}
