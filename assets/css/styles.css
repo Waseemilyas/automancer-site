@@ -1391,21 +1391,11 @@ p + p { margin-top: var(--sp-4); }
 html,
 body {
   width: 100%;
-  max-width: 100%;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
-main,
-section,
-.container,
-.split,
-.off-grid,
-.services-grid,
-.work-cols,
-.steps,
-.service-detail,
-.footer__grid {
-  max-width: 100%;
+main {
+  overflow-x: hidden;
 }
 
 /* Prevent CSS grid/flex children from forcing horizontal overflow */
@@ -1424,4 +1414,18 @@ section,
   width: 100vw;
   max-width: 100vw;
   overflow-x: hidden;
+}
+
+/* Some sections use left/right reveal transforms. On small screens this can look clipped.
+   Switch to vertical reveal motion for cleaner in-bounds rendering. */
+@media (max-width: 768px) {
+  .reveal--left,
+  .reveal--right {
+    transform: translateY(24px);
+  }
+
+  .reveal--left.is-visible,
+  .reveal--right.is-visible {
+    transform: translateY(0);
+  }
 }
