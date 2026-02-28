@@ -321,8 +321,22 @@ p + p { margin-top: var(--sp-4); }
 .mobile-menu.is-open .mobile-menu__link:nth-child(5) { animation-delay: 0.3s; }
 
 @media (max-width: 768px) {
+  .nav {
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom-color: var(--c-gray-800);
+    padding-top: var(--sp-3);
+    padding-bottom: var(--sp-3);
+  }
+
   .nav__links { display: none; }
-  .hamburger { display: flex; }
+
+  .hamburger {
+    display: flex;
+    position: relative;
+    z-index: 202;
+  }
 }
 
 /* ── Buttons ── */
