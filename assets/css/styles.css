@@ -1338,3 +1338,37 @@ p + p { margin-top: var(--sp-4); }
 
 .mt-section { margin-top: var(--section-pad-y); }
 .mb-section { margin-bottom: var(--section-pad-y); }
+
+/* ── CTA Watermark Mobile Fix ── */
+.cta-block .container {
+  position: relative;
+  z-index: 2;
+}
+
+.cta-block .btn {
+  position: relative;
+  z-index: 3;
+}
+
+.cta-block__watermark {
+  z-index: 1;
+  width: 64px;
+  bottom: var(--sp-6);
+  opacity: 0.22;
+}
+
+@media (max-width: 640px) {
+  .cta-block {
+    padding: clamp(4.5rem, 12vw, 6rem) 0 clamp(5rem, 14vw, 7rem);
+  }
+
+  .cta-block__heading {
+    margin-bottom: var(--sp-8);
+  }
+
+  .cta-block__watermark {
+    width: 40px;
+    bottom: var(--sp-3);
+    opacity: 0.18;
+  }
+}
