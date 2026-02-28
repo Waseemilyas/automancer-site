@@ -551,6 +551,9 @@ p + p { margin-top: var(--sp-4); }
 }
 
 .hero__headline {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   font-family: var(--font-display);
   font-size: var(--fs-display);
   font-weight: 800;
@@ -1495,5 +1498,22 @@ main {
     border-color: var(--c-white);
     background: rgba(255, 255, 255, 0.08);
     outline: none;
+  }
+}
+
+
+/* ── Hero typography tuning for small mobile screens ── */
+@media (max-width: 480px) {
+  .hero__headline {
+    font-size: clamp(1.95rem, 10.5vw, 2.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    max-width: 12ch;
+  }
+
+  .hero__sub {
+    font-size: clamp(1rem, 4.8vw, 1.18rem);
+    line-height: 1.55;
+    max-width: 34ch;
   }
 }
