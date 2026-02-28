@@ -1438,3 +1438,30 @@ main {
     word-break: normal;
   }
 }
+
+
+/* ── Why Automancer block (stable two-column section) ── */
+.why-block {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
+  gap: var(--sp-12);
+  align-items: start;
+}
+
+.why-block__heading,
+.why-block__content {
+  min-width: 0;
+}
+
+.why-block__content p,
+.why-block__content .pull-quote {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+  .why-block {
+    grid-template-columns: 1fr;
+    gap: var(--sp-8);
+  }
+}
