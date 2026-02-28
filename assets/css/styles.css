@@ -1386,3 +1386,42 @@ p + p { margin-top: var(--sp-4); }
     opacity: 0.18;
   }
 }
+
+/* ── Mobile overflow hardening ── */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+main,
+section,
+.container,
+.split,
+.off-grid,
+.services-grid,
+.work-cols,
+.steps,
+.service-detail,
+.footer__grid {
+  max-width: 100%;
+}
+
+/* Prevent CSS grid/flex children from forcing horizontal overflow */
+.split > *,
+.off-grid > *,
+.services-grid > *,
+.work-cols > *,
+.steps > *,
+.service-detail > *,
+.footer__grid > * {
+  min-width: 0;
+}
+
+/* Mobile menu should not contribute to document width */
+.mobile-menu {
+  width: 100vw;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
