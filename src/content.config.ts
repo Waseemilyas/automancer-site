@@ -28,6 +28,20 @@ const caseStudies = defineCollection({
     client: z.string().optional(),
     // Short home/index teaser line, separate from the SEO `description`.
     summary: z.string().optional(),
+    // Designed hero + stat band (rendered by /work/[slug], not the markdown body).
+    headline: z.string().optional(),
+    subhead: z.string().optional(),
+    stats: z
+      .array(z.object({ v: z.string(), l: z.string() }))
+      .default([]),
+    // All case studies ship anonymised until written client sign-off lands.
+    anonymised: z.boolean().default(false),
+    // Manual ordering on the /work index (lower = earlier). Falls back to date.
+    order: z.number().optional(),
+    // Delivery status badge, honest per the style guide (live / in build / signed off).
+    status: z.string().optional(),
+    // Whether this study gets the full-width feature card on /work.
+    featured: z.boolean().default(false),
   }),
 });
 
@@ -36,6 +50,8 @@ const fieldNotes = defineCollection({
   schema: z.object({
     ...sharedFrontmatter,
     author: z.string().default('Waseem Ilyas'),
+    // Short index teaser, separate from the SEO description.
+    summary: z.string().optional(),
   }),
 });
 

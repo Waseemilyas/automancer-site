@@ -7,16 +7,33 @@
  */
 
 /**
- * Contact form submission target.
+ * Contact form submission target — the finalised AUTD lead-intake endpoint.
  *
- * IMPORTANT — no third-party form processors (Formspree, Netlify Forms,
- * Basin, etc.). The previous site posted to Formspree; that is being
- * deliberately replaced. The AUTD intake endpoint is being built
- * separately and will own contact-form ingestion end to end. Do NOT wire
- * this to a third-party SaaS form processor — replace the placeholder
- * below with the AUTD intake endpoint URL only.
+ * NO third-party form processors (Formspree, Netlify Forms, Basin, etc.).
+ * The previous site posted to Formspree; that is deliberately replaced. This
+ * endpoint owns contact-form ingestion end to end.
+ *
+ * Contract (see src/pages/contact.astro for the client implementation):
+ *   POST application/json, no credentials.
+ *   Body: { name, email, company?, message, turnstileToken, website }
+ *         `website` is a honeypot — must submit empty.
+ *   Responses: 200 {ok:true} · 400 {error} · 403 turnstile_failed
+ *              · 429 {rate_limited, retryAfterMs} · 5xx → mailto fallback.
+ *
+ * NOTE: the API CORS origin is locked to https://automancer.uk, so live
+ * submissions only succeed from the production origin — local `astro dev`
+ * / preview will hit a CORS wall (expected), and the form degrades to the
+ * mailto fallback there.
  */
-export const ENDPOINT_URL = 'https://REPLACE_WITH_AUTD_INTAKE_ENDPOINT.example/contact';
+export const ENDPOINT_URL = 'https://api.automancer.uk/api/lead';
+
+/** Client-side field limits, mirrored from the intake endpoint's validation. */
+export const FIELD_LIMITS = {
+  name: 200,
+  email: 254,
+  company: 200,
+  message: 5000,
+} as const;
 
 /**
  * Cloudflare Turnstile site key for the contact form widget.

@@ -1,72 +1,63 @@
 /* ═══════════════════════════════════════════
    AUTOMANCER — main.js
-   Scroll reveals, nav behavior, mobile menu
+   Scroll reveals · nav scroll state · mobile menu
+   Minimal, dependency-free, reduced-motion aware.
    ═══════════════════════════════════════════ */
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ── Scroll Reveal (Intersection Observer) ── */
-  const revealEls = document.querySelectorAll('.reveal, .reveal--left, .reveal--right');
-  if (revealEls.length) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, {
-      threshold: 0.12,
-      rootMargin: '0px 0px -60px 0px'
-    });
-    revealEls.forEach(el => observer.observe(el));
-  }
-
-  /* ── Nav Scroll Behavior ── */
-  const nav = document.querySelector('.nav');
-  if (nav) {
-    const onScroll = () => {
-      nav.classList.toggle('nav--scrolled', window.scrollY > 80);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-  }
-
-  /* ── Mobile Menu Toggle ── */
-  const hamburger = document.querySelector('.hamburger');
-  const mobileMenu = document.querySelector('.mobile-menu');
-  const mobileClose = document.querySelector('.mobile-menu__close');
-  if (hamburger && mobileMenu) {
-    hamburger.addEventListener('click', () => {
-      const isOpen = mobileMenu.classList.toggle('is-open');
-      hamburger.classList.toggle('is-active', isOpen);
-      document.body.style.overflow = isOpen ? 'hidden' : '';
-      hamburger.setAttribute('aria-expanded', isOpen);
-    });
-
-    const closeMenu = () => {
-      mobileMenu.classList.remove('is-open');
-      hamburger.classList.remove('is-active');
-      document.body.style.overflow = '';
-      hamburger.setAttribute('aria-expanded', 'false');
-    };
-
-    // Close on link click
-    mobileMenu.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', closeMenu);
-    });
-
-    // Close on X button
-    if (mobileClose) {
-      mobileClose.addEventListener('click', closeMenu);
-    };
-
-    // Close on Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && mobileMenu.classList.contains('is-open')) {
-        closeMenu();
+  document.addEventListener('DOMContentLoaded', function () {
+    /* ── Scroll reveal ── */
+    var revealEls = document.querySelectorAll('.reveal, .reveal-stagger');
+    if (revealEls.length) {
+      if (reduce || !('IntersectionObserver' in window)) {
+        revealEls.forEach(function (el) { el.classList.add('is-visible'); });
+      } else {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              io.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.1, rootMargin: '0px 0px -8% 0px' });
+        revealEls.forEach(function (el) { io.observe(el); });
       }
-    });
-  }
+    }
 
-});
+    /* ── Nav scroll state ── */
+    var nav = document.querySelector('.nav');
+    if (nav) {
+      var onScroll = function () {
+        nav.classList.toggle('nav--scrolled', window.scrollY > 60);
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
+    /* ── Mobile menu ── */
+    var hamburger = document.querySelector('.hamburger');
+    var menu = document.querySelector('.mobile-menu');
+    var closeBtn = document.querySelector('.mobile-menu__close');
+    if (hamburger && menu) {
+      var setOpen = function (open) {
+        menu.classList.toggle('is-open', open);
+        hamburger.setAttribute('aria-expanded', String(open));
+        hamburger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        document.body.style.overflow = open ? 'hidden' : '';
+      };
+      hamburger.addEventListener('click', function () {
+        setOpen(!menu.classList.contains('is-open'));
+      });
+      if (closeBtn) closeBtn.addEventListener('click', function () { setOpen(false); });
+      menu.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function () { setOpen(false); });
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && menu.classList.contains('is-open')) setOpen(false);
+      });
+    }
+  });
+})();
