@@ -1,0 +1,43 @@
+---
+import { business } from '../data/business';
+---
+
+<footer class="footer" role="contentinfo">
+  <div class="footer__inner">
+    <div class="footer__grid">
+      <div>
+        <p class="footer__company-name">{business.tradingName}</p>
+        <p class="footer__company-info">
+          {business.legalName}<br />
+          Company No. {business.companyNumber}<br />
+          {business.address.streetAddress}, {business.address.addressLocality}, {business.address.postalCode}<br />
+          <a href={`mailto:${business.email}`} class="footer__link">{business.email}</a>
+        </p>
+      </div>
+      <div>
+        <p class="footer__heading">Pages</p>
+        <nav class="footer__links" aria-label="Footer navigation">
+          <a href="/" class="footer__link">Home</a>
+          <a href="/services" class="footer__link">Services</a>
+          <a href="/work" class="footer__link">Work</a>
+          <a href="/field-notes" class="footer__link">Field Notes</a>
+          <a href="/about" class="footer__link">About</a>
+          <a href="/contact" class="footer__link">Contact</a>
+        </nav>
+      </div>
+      <div>
+        <p class="footer__heading">Contact</p>
+        <div class="footer__links">
+          <a href={`mailto:${business.email}`} class="footer__link">{business.email}</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p>&copy; {new Date().getFullYear()} {business.legalName}</p>
+      <div class="footer__legal-links">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Website Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>

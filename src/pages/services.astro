@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { services } from '../data/business';
+
+const formatPrice = (n: number) =>
+  n.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
+---
+
+<BaseLayout
+  title="Services &amp; Pricing"
+  description="Automation audits, implementation sprints, system/agent builds, and an AI ops partner plan for small businesses."
+>
+  <section class="page-hero">
+    <div class="page-hero__inner">
+      <h1 class="page-hero__title">Services</h1>
+      <p class="page-hero__sub">
+        Practical AI and automation services designed for small businesses. Every engagement
+        starts with clarity on business outcomes, scope, and ownership.
+      </p>
+    </div>
+  </section>
+
+  {services.map((service, i) => (
+    <section class={`section ${i % 2 === 0 ? 'section--light' : 'section--dark'}`}>
+      <div class="container">
+        <div class="service-detail">
+          <div>
+            <span class="label">Service {String(i + 1).padStart(2, '0')}</span>
+            <h2 class="service-detail__name">{service.name}</h2>
+            <p class="service-detail__what">{service.description}</p>
+            <p class="service-detail__price">
+              From {formatPrice(service.priceFrom)}
+              {service.priceUnit === 'month' ? ' / month' : ''}
+            </p>
+            <p><a href="/contact" class="link">Book a consultation &rarr;</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <section class="section section--dark cta-block">
+    <div class="container">
+      <h2 class="cta-block__heading">Not sure where to start?</h2>
+      <p class="text-lg">Book a consultation and we'll map the best first step.</p>
+      <a href="/contact" class="btn btn--primary"><span>Book a consultation</span></a>
+    </div>
+  </section>
+</BaseLayout>

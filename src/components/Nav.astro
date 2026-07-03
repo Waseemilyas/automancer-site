@@ -1,0 +1,49 @@
+---
+/**
+ * Primary site navigation. Structural port of the previous static site's
+ * nav markup/classes (styles.css) — visual design pass follows separately.
+ */
+const navLinks = [
+  { href: '/', label: 'Home' },
+  { href: '/services', label: 'Services' },
+  { href: '/work', label: 'Work' },
+  { href: '/field-notes', label: 'Field Notes' },
+  { href: '/about', label: 'About' },
+];
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? currentPath === '/' : currentPath.startsWith(href);
+---
+
+<header class="nav" role="banner">
+  <a href="/" class="nav__logo" aria-label="Automancer home">
+    <img src="/assets/images/logo.svg" alt="" class="nav__logo-mark" />
+    <span class="nav__logo-text">Automancer</span>
+  </a>
+
+  <nav class="nav__links" aria-label="Main navigation">
+    {navLinks.map((link) => (
+      <a
+        href={link.href}
+        class="nav__link"
+        aria-current={isActive(link.href) ? 'page' : undefined}
+      >
+        {link.label}
+      </a>
+    ))}
+    <a href="/contact" class="btn btn--primary btn--nav"><span>Contact</span></a>
+  </nav>
+
+  <button class="hamburger" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<div class="mobile-menu" aria-hidden="true">
+  <button class="mobile-menu__close" aria-label="Close menu">&times;</button>
+  {navLinks.map((link) => (
+    <a href={link.href} class="mobile-menu__link">{link.label}</a>
+  ))}
+  <a href="/contact" class="mobile-menu__link">Contact</a>
+</div>

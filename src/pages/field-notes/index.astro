@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('field-notes')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+---
+
+<BaseLayout
+  title="Field Notes"
+  description="Practical notes on AI and workflow automation for small businesses, from Automancer."
+>
+  <section class="page-hero">
+    <div class="page-hero__inner">
+      <h1 class="page-hero__title">Field Notes</h1>
+      <p class="page-hero__sub">Practical notes on automation, AI, and running a leaner operation.</p>
+    </div>
+  </section>
+
+  <section class="section section--light">
+    <div class="container">
+      <ul class="post-index">
+        {posts.map((entry) => (
+          <li class="post-index__item">
+            <a href={`/field-notes/${entry.id}`}>
+              {entry.data.draft && <span class="badge badge--draft">DRAFT</span>}
+              <h2>{entry.data.title}</h2>
+              <p>{entry.data.description}</p>
+              <p class="text-sm">{entry.data.date.toLocaleDateString('en-GB')} &middot; {entry.data.author}</p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>

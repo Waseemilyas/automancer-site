@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+// Show drafts in this scaffold so the sample entry is reachable; a real
+// launch build should filter `draft: true` entries out of this index.
+const caseStudies = (await getCollection('case-studies')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+---
+
+<BaseLayout
+  title="Work"
+  description="Case studies of automation and AI systems Automancer has built for small businesses."
+>
+  <section class="page-hero">
+    <div class="page-hero__inner">
+      <h1 class="page-hero__title">Work</h1>
+      <p class="page-hero__sub">Case studies from recent engagements.</p>
+    </div>
+  </section>
+
+  <section class="section section--light">
+    <div class="container">
+      <ul class="case-study-index">
+        {caseStudies.map((entry) => (
+          <li class="case-study-index__item">
+            <a href={`/work/${entry.id}`}>
+              {entry.data.draft && <span class="badge badge--draft">DRAFT</span>}
+              <h2>{entry.data.title}</h2>
+              <p>{entry.data.summary ?? entry.data.description}</p>
+              <p class="text-sm">{entry.data.sector} &middot; {entry.data.tags.join(', ')}</p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,110 @@
+---
+// Contact page.
+//
+// NO THIRD-PARTY FORM PROCESSORS. The previous site posted to Formspree;
+// that is intentionally NOT carried over. This form posts client-side to
+// ENDPOINT_URL (see src/config/site.ts), which will point at the AUTD
+// intake endpoint once it exists. Until then ENDPOINT_URL is a
+// placeholder and submissions will fail — that is expected for this
+// structure-only scaffold.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ENDPOINT_URL, TURNSTILE_SITE_KEY } from '../config/site';
+---
+
+<BaseLayout
+  title="Contact"
+  description="Tell Automancer about your business and where operations are getting stuck."
+>
+  <!-- Cloudflare Turnstile script, loaded on this page only. -->
+  <script
+    slot="head"
+    is:inline
+    src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+    async
+    defer></script>
+
+  <section class="page-hero">
+    <div class="page-hero__inner">
+      <h1 class="page-hero__title">Contact</h1>
+      <p class="page-hero__sub">
+        Tell me a little about your business and where operations are getting stuck. I'll come
+        prepared with practical ideas for what to automate first.
+      </p>
+    </div>
+  </section>
+
+  <section class="section section--light">
+    <div class="container container--narrow">
+      <form
+        id="contact-form"
+        class="form"
+        method="POST"
+        data-endpoint={ENDPOINT_URL}
+      >
+        <div class="form-field">
+          <label for="name">Full name</label>
+          <input type="text" id="name" name="name" required autocomplete="name" />
+        </div>
+
+        <div class="form-field">
+          <label for="email">Work email</label>
+          <input type="email" id="email" name="email" required autocomplete="email" />
+        </div>
+
+        <div class="form-field">
+          <label for="company">Company name</label>
+          <input type="text" id="company" name="company" required autocomplete="organization" />
+        </div>
+
+        <div class="form-field">
+          <label for="time-sink">What's eating your time?</label>
+          <textarea
+            id="time-sink"
+            name="time_sink"
+            required
+            placeholder="What's taking up too much of your team's time?"></textarea>
+        </div>
+
+        <div class="form-field">
+          <label>Security check</label>
+          <div class="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY}></div>
+        </div>
+
+        <button type="submit" class="btn btn--dark btn--full"><span>Send enquiry</span></button>
+      </form>
+
+      <div id="form-confirmation" style="display: none;">
+        <h2>Thanks</h2>
+        <p class="text-lg">I'll review your details and reply with next steps.</p>
+      </div>
+    </div>
+  </section>
+
+  <script is:inline>
+    // Minimal client-side submit handler, posting JSON to the configured
+    // endpoint (see data-endpoint on the form). This intentionally has no
+    // third-party form processor in the loop. Swap for a richer handler
+    // (loading state, inline errors) once the real AUTD intake endpoint
+    // contract is finalised.
+    const form = document.getElementById('contact-form');
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const endpoint = form.getAttribute('data-endpoint');
+      const formData = new FormData(form);
+      const payload = Object.fromEntries(formData.entries());
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error(`Submission failed: ${response.status}`);
+        form.style.display = 'none';
+        document.getElementById('form-confirmation').style.display = 'block';
+      } catch (err) {
+        console.error('Contact form submission failed', err);
+        alert('Something went wrong sending your enquiry. Please email waseem@automancer.uk directly.');
+      }
+    });
+  </script>
+</BaseLayout>

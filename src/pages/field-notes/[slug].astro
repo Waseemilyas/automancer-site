@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import JsonLd from '../../components/JsonLd.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('field-notes');
+  return posts.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const canonicalURL = new URL(Astro.url.pathname, Astro.site).toString();
+---
+
+<BaseLayout title={entry.data.title} description={entry.data.description} ogType="article">
+  <Fragment slot="head">
+    <JsonLd
+      type="Article"
+      article={{
+        title: entry.data.title,
+        description: entry.data.description,
+        date: entry.data.date,
+        author: entry.data.author,
+        url: canonicalURL,
+      }}
+    />
+  </Fragment>
+
+  <article class="section section--light container container--narrow">
+    {entry.data.draft && <p class="badge badge--draft">DRAFT — not for publication</p>}
+    <p class="text-sm">{entry.data.date.toLocaleDateString('en-GB')} &middot; {entry.data.author}</p>
+    <h1>{entry.data.title}</h1>
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
