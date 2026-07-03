@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+# Builds the Astro site and deploys it via the GitHub Pages Actions flow
+# (actions/deploy-pages), NOT the legacy branch-based Pages build.
+#
+# Trigger is intentionally push-to-main only, so this workflow is inert on
+# every other branch (including relaunch) until this branch is merged.
+# IMPORTANT: the repo's Settings > Pages > Source must be switched from
+# "Deploy from a branch" to "GitHub Actions" for this workflow to take
+# over Pages serving — see the relaunch PR description for details. Until
+# that switch happens, this workflow will build and upload an artifact
+# but Pages will keep serving the legacy branch-based build.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
