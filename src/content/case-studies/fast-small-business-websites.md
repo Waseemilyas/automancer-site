@@ -2,6 +2,7 @@
 title: From zero to live, in days, for near-zero running cost
 description: Fast, affordable, compliant landing sites for small businesses that needed a proper web presence yesterday — with no monthly platform fees.
 summary: Fast, affordable, compliant landing sites for small businesses that needed a proper web presence yesterday — with no monthly platform fees. The light end of what we do.
+statline: "live in days · no monthly platform fees · SEO + compliance built in"
 date: 2026-03-10
 sector: Small business / web
 tags: [websites, landing pages, small business]

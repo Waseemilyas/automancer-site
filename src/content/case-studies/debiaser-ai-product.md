@@ -2,6 +2,7 @@
 title: A £300–400 consultant job, done for £10–80 in minutes
 description: For a diversity & inclusion consultancy, we turned a human-bottlenecked document-review service into a live self-service AI product — same rigour, a fraction of the cost, in production since June 2026.
 summary: We turned an expensive, human-bottlenecked bias-review service into a live self-service AI product. Same rigour, a fraction of the cost. In production since June 2026.
+statline: "£300–400 → £10–80 per document · hours → minutes"
 date: 2026-06-12
 sector: Professional services / DEI consulting
 tags: [AI product, productisation, self-service, SaaS]

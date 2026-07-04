@@ -16,7 +16,7 @@ const rest = studies.filter((e) => e.id !== feature?.id);
   description="Real systems, live in production. Case studies from a care provider, a manufacturer, a diversity & inclusion consultancy and small firms — every fact taken from the actual work."
 >
   <section class="page-hero hatch">
-    <div class="page-hero__glow" aria-hidden="true"></div>
+    <div class="page-hero__glow" aria-hidden="true" data-px="26"></div>
     <div class="page-hero__inner">
       <p class="eyebrow">Selected work</p>
       <h1 class="page-hero__title">Real businesses. Real systems. Live in production.</h1>
@@ -41,23 +41,35 @@ const rest = studies.filter((e) => e.id !== feature?.id);
 
       <div class="case-grid">
         {feature && (
-          <a href={`/work/${feature.id}`} class="case-card case-card--feature">
+          <a href={`/work/${feature.id}`} class="case-card case-card--feature" data-spot>
             <span class="case-card__tag">
+              {feature.data.status && <span class="live-dot" aria-hidden="true"></span>}
               {feature.data.sector}{feature.data.status ? ` · ${feature.data.status}` : ''}
             </span>
             <h2 class="case-card__title">{feature.data.title}</h2>
             <p class="case-card__blurb" set:html={feature.data.summary ?? feature.data.description} />
+            {feature.data.stats.length > 0 && (
+              <div class="statband case-card__stats">
+                {feature.data.stats.map((s) => (
+                  <div class="stat">
+                    <div class="stat__v">{s.v}</div>
+                    <div class="stat__l">{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div class="case-card__foot">
               <span class="arrow-link">Read the case study <span class="btn__arrow">→</span></span>
-              <span class="case-card__tag">{feature.data.tags.slice(0, 3).join(' · ')}</span>
+              <span class="case-card__tag">{feature.data.tags.slice(0, 4).join(' · ')}</span>
             </div>
           </a>
         )}
         {rest.map((e) => (
-          <a href={`/work/${e.id}`} class="case-card">
+          <a href={`/work/${e.id}`} class="case-card" data-spot>
             <span class="case-card__tag">{e.data.sector}{e.data.status ? ` · ${e.data.status}` : ''}</span>
             <h2 class="case-card__title">{e.data.title}</h2>
             <p class="case-card__blurb">{e.data.summary ?? e.data.description}</p>
+            {e.data.statline && <p class="case-card__statline">{e.data.statline}</p>}
             <div class="case-card__foot">
               <span class="arrow-link">Read <span class="btn__arrow">→</span></span>
             </div>

@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════
    AUTOMANCER — main.js
    Scroll reveals · nav scroll state · mobile menu
+   · orb cursor-parallax · card spotlight · hero typed line
    Minimal, dependency-free, reduced-motion aware.
    ═══════════════════════════════════════════ */
 (function () {
@@ -59,5 +60,55 @@
         if (e.key === 'Escape' && menu.classList.contains('is-open')) setOpen(false);
       });
     }
+
+    /* ── Hero typed line ──
+       The span renders the full line by default (works with no JS / reduced
+       motion). When motion is allowed we clear it and type it back in. */
+    var typedEl = document.querySelector('[data-typed]');
+    if (typedEl && !reduce) {
+      var full = typedEl.textContent || '';
+      typedEl.textContent = '';
+      var i = 0;
+      setTimeout(function () {
+        var timer = setInterval(function () {
+          i += 1;
+          typedEl.textContent = full.slice(0, i);
+          if (i >= full.length) clearInterval(timer);
+        }, 38);
+      }, 1400);
+    }
+
+    if (reduce) return;
+
+    /* ── Orb cursor-parallax ──
+       [data-px] elements drift gently toward the cursor. data-px is the depth
+       factor (px of travel per half-viewport of pointer movement). rAF-throttled. */
+    var pxEls = Array.prototype.slice.call(document.querySelectorAll('[data-px]'));
+    if (pxEls.length && window.matchMedia('(pointer: fine)').matches) {
+      var mx = 0, my = 0, raf = null;
+      var applyPx = function () {
+        raf = null;
+        pxEls.forEach(function (el) {
+          var d = parseFloat(el.getAttribute('data-px')) || 20;
+          el.style.translate = (mx * d) + 'px ' + (my * d) + 'px';
+        });
+      };
+      window.addEventListener('mousemove', function (e) {
+        mx = (e.clientX / window.innerWidth) - 0.5;
+        my = (e.clientY / window.innerHeight) - 0.5;
+        if (!raf) raf = requestAnimationFrame(applyPx);
+      }, { passive: true });
+    }
+
+    /* ── Card spotlight ──
+       [data-spot] gets --mx/--my custom props under the pointer, feeding a
+       soft radial-gradient in CSS. */
+    document.querySelectorAll('[data-spot]').forEach(function (el) {
+      el.addEventListener('pointermove', function (e) {
+        var r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+        el.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+      });
+    });
   });
 })();

@@ -32,14 +32,15 @@ const caps = [
   <!-- ─────────────── Hero ─────────────── -->
   <section class="hero hatch">
     <div class="hero__glow" aria-hidden="true">
-      <div class="hero__orb hero__orb--a"></div>
-      <div class="hero__orb hero__orb--b"></div>
+      <div class="hero__orb hero__orb--a" data-px="34"></div>
+      <div class="hero__orb hero__orb--b" data-px="-22"></div>
     </div>
     <div class="hero__inner">
-      <p class="eyebrow hero__eyebrow">AI &amp; automation consultancy · Bradford → UK-wide</p>
-      <h1 class="hero__headline">Your admin, automated into oblivion.</h1>
-      <p class="hero__reveal">
-        We make small businesses run like magic. <span class="spell">It's not magic. It's very good engineering.</span>
+      <p class="eyebrow eyebrow--live hero__eyebrow">AI &amp; automation consultancy · Bradford → UK-wide</p>
+      <h1 class="hero__headline">Your admin, automated into <span class="spectral-text">oblivion</span>.</h1>
+      <p class="hero__reveal">We make small businesses run like magic.</p>
+      <p class="hero__typed" aria-label="It's not magic. It's very good engineering.">
+        <span class="prompt" aria-hidden="true">&gt;_ </span><span data-typed>It's not magic. It's very good engineering.</span><span class="hero__caret" aria-hidden="true"></span>
       </p>
       <p class="hero__body">
         Automancer builds the software and AI agents that do the boring, expensive, error-prone
@@ -56,7 +57,10 @@ const caps = [
   <section class="section on-near">
     <div class="wrap">
       <div class="section-head reveal">
-        <p class="eyebrow">The proof is the business you're looking at</p>
+        <div class="section-head__top">
+          <p class="eyebrow">The proof is the business you're looking at</p>
+          <span class="section-head__log">// proof.log — live</span>
+        </div>
         <h2>This whole company is run by AI. On purpose.</h2>
         <p>
           Most consultancies will tell you AI is the future. We just handed ours the keys — the
@@ -67,30 +71,23 @@ const caps = [
       </div>
 
       <div class="proof-grid reveal-stagger">
-        <div class="proof-cell">
-          <span class="proof-cell__n">01 · finance</span>
-          <h3>On autopilot</h3>
-          <p>Agents run the invoicing, reconciliation and bookkeeping ops. Waseem approves.</p>
-        </div>
-        <div class="proof-cell">
-          <span class="proof-cell__n">02 · delivery</span>
-          <h3>Self-tracking</h3>
-          <p>Every project lane is governed and monitored by agents, board-gated before anything touches a client.</p>
-        </div>
-        <div class="proof-cell">
-          <span class="proof-cell__n">03 · content</span>
-          <h3>This site &amp; blog</h3>
-          <p>Written, built and maintained by the same agents we'd put to work in your business.</p>
-        </div>
-        <div class="proof-cell">
-          <span class="proof-cell__n">04 · control</span>
-          <h3>One human in the loop</h3>
-          <p>Every decision. Every call. No call centre, no "your ticket is important to us".</p>
-        </div>
+        {[
+          { n: '01', tag: 'finance', h: 'On autopilot', p: 'Agents run the invoicing, reconciliation and bookkeeping ops. Waseem approves.' },
+          { n: '02', tag: 'delivery', h: 'Self-tracking', p: 'Every project lane is governed and monitored by agents, board-gated before anything touches a client.' },
+          { n: '03', tag: 'content', h: 'This site & blog', p: "Written, built and maintained by the same agents we'd put to work in your business." },
+          { n: '04', tag: 'control', h: 'One human in the loop', p: 'Every decision. Every call. No call centre, no "your ticket is important to us".' },
+        ].map((c) => (
+          <div class="proof-cell" data-spot>
+            <span class="ghost-num" aria-hidden="true">{c.n}</span>
+            <span class="proof-cell__n">{c.tag}</span>
+            <h3>{c.h}</h3>
+            <p>{c.p}</p>
+          </div>
+        ))}
       </div>
 
       <blockquote class="pullquote reveal" style="margin-top: clamp(3rem, 6vw, 5rem);">
-        We're not selling you a tool we read about. We're selling you the thing we run our own company on.
+        We're not selling you a tool we read about. We're selling you <span class="spectral-text">the thing we run our own company on</span>.
       </blockquote>
     </div>
   </section>
@@ -99,7 +96,10 @@ const caps = [
   <section class="section on-paper">
     <div class="wrap">
       <div class="section-head">
-        <p class="eyebrow">What we do</p>
+        <div class="section-head__top">
+          <p class="eyebrow">What we do</p>
+          <span class="section-head__log">// capabilities: 4</span>
+        </div>
         <h2>We automate the stuff that's eating your week.</h2>
         <p>
           If a person on your team spends hours copying data between systems, re-keying spreadsheets,
@@ -110,11 +110,9 @@ const caps = [
       <ol class="cap-list reveal">
         {caps.map((c, i) => (
           <li class="cap-row">
-            <span class="cap-row__n">{String(i + 1).padStart(2, '0')}</span>
-            <div class="cap-row__body">
-              <span class="cap-row__name">{c.name}</span>
-              <span class="cap-row__desc">{c.desc}</span>
-            </div>
+            <span class="cap-row__n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+            <span class="cap-row__name">{c.name}</span>
+            <span class="cap-row__desc">{c.desc}</span>
           </li>
         ))}
       </ol>
@@ -128,7 +126,10 @@ const caps = [
   <section class="section on-dark hatch">
     <div class="wrap">
       <div class="section-head">
-        <p class="eyebrow">Sensible prices, published</p>
+        <div class="section-head__top">
+          <p class="eyebrow">Sensible prices, published</p>
+          <span class="section-head__log">// no_funnel = true</span>
+        </div>
         <h2>Not "let's get you on a call".</h2>
         <p>
           Enterprise automation firms quote enterprise numbers. We don't. Here's where things start —
@@ -165,7 +166,7 @@ const caps = [
       </div>
       <div class="case-grid">
         {feature && (
-          <a href={`/work/${feature.id}`} class="case-card case-card--feature">
+          <a href={`/work/${feature.id}`} class="case-card case-card--feature" data-spot>
             <span class="case-card__tag">{feature.data.sector}{feature.data.status ? ` · ${feature.data.status}` : ''}</span>
             <h3 class="case-card__title">{feature.data.title}</h3>
             <p class="case-card__blurb" set:html={feature.data.summary ?? feature.data.description} />
@@ -175,7 +176,7 @@ const caps = [
           </a>
         )}
         {rest.map((e) => (
-          <a href={`/work/${e.id}`} class="case-card">
+          <a href={`/work/${e.id}`} class="case-card" data-spot>
             <span class="case-card__tag">{e.data.sector}</span>
             <h3 class="case-card__title">{e.data.title}</h3>
             <p class="case-card__blurb">{e.data.summary ?? e.data.description}</p>

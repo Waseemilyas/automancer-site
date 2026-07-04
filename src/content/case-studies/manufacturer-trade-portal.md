@@ -2,6 +2,7 @@
 title: Order-to-dispatch for a UK plastics manufacturer
 description: We replaced informal, phone-and-memory ordering with a proper trade portal — account-specific pricing, catalogue, orders, production and dispatch in one flow. Phase 1 signed off.
 summary: We replaced phone-and-memory order-taking with a full trade portal — account pricing, catalogue, orders, production and dispatch in one workflow. Phase 1 signed off.
+statline: "74 customers · 888 products · 1,263 price rules seeded day one"
 date: 2026-04-15
 sector: Manufacturing / building-products trade supply
 tags: [custom software, trade portal, B2B, pricing engine]

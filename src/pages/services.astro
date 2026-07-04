@@ -92,7 +92,7 @@ const faqs = [
 >
   <!-- Hero -->
   <section class="page-hero hatch">
-    <div class="page-hero__glow" aria-hidden="true"></div>
+    <div class="page-hero__glow" aria-hidden="true" data-px="26"></div>
     <div class="page-hero__inner">
       <p class="eyebrow">Services &amp; pricing</p>
       <h1 class="page-hero__title">Four ways in. All of them start with a price you can actually see.</h1>
@@ -117,21 +117,16 @@ const faqs = [
           on as their AI Ops Partner. You can jump on at any rung.
         </p>
       </div>
-      <div class="table-scroll reveal">
-        <table class="ladder-table">
-          <thead>
-            <tr><th>Offer</th><th>From</th><th>What you get</th></tr>
-          </thead>
-          <tbody>
-            {overview.map((r) => (
-              <tr>
-                <td>{r.name}</td>
-                <td class="from">{r.from}</td>
-                <td class="muted">{r.what}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div class="overview-list reveal">
+        {overview.map((r) => (
+          <div class="overview-row">
+            <div class="overview-row__head">
+              <span class="overview-row__name">{r.name}</span>
+              <span class="overview-row__price"><span class="from">from</span>{r.from}</span>
+            </div>
+            <p class="overview-row__what">{r.what}</p>
+          </div>
+        ))}
       </div>
     </div>
   </section>
@@ -142,7 +137,10 @@ const faqs = [
       <div class="wrap">
         <div class={`offer${i % 2 === 1 ? ' offer--reverse' : ''}`}>
           <div class="offer__lede reveal">
-            <p class="offer__step">{o.step}</p>
+            <p class="offer__stepline">
+              <span class="offer__num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+              <span class="offer__step">{o.step}</span>
+            </p>
             <h2 class="offer__name">{o.name}</h2>
             <p class="offer__price">
               <span class="offer__amt">{o.amt}</span>{o.per && <span class="offer__amt" style="font-size:var(--t-1)">{o.per}</span>}

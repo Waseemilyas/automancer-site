@@ -15,7 +15,7 @@ const principles = [
   description="An AI-run consultancy with a human at the helm. Automancer's finance, project tracking and website run on agents — every decision and every call run by Waseem Ilyas, in Bradford."
 >
   <section class="page-hero hatch">
-    <div class="page-hero__glow" aria-hidden="true"></div>
+    <div class="page-hero__glow" aria-hidden="true" data-px="26"></div>
     <div class="page-hero__inner">
       <p class="eyebrow">About Automancer</p>
       <h1 class="page-hero__title">An AI-run business, with a human at the helm.</h1>
@@ -30,7 +30,7 @@ const principles = [
   <section class="section on-near">
     <div class="wrap">
       <div class="story">
-        <div class="story__aside"><h2>Why "Automancer"?</h2></div>
+        <div class="story__aside"><span class="story__tag">01 · the name</span><h2>Why "Automancer"?</h2></div>
         <div class="story__body">
           <p>
             An automancer works magic through machines. That's the joke, and it's also the honest job
@@ -56,7 +56,7 @@ const principles = [
   <section class="section on-paper">
     <div class="wrap">
       <div class="story">
-        <div class="story__aside"><h2>The business is the demo.</h2></div>
+        <div class="story__aside"><span class="story__tag">02 · the demo</span><h2>The business is the demo.</h2></div>
         <div class="story__body">
           <p>Here's the part other firms won't show you: how we actually run.</p>
           <p>
@@ -86,7 +86,7 @@ const principles = [
   <section class="section on-dark hatch">
     <div class="wrap">
       <div class="story">
-        <div class="story__aside"><h2>Meet Waseem.</h2></div>
+        <div class="story__aside"><span class="story__tag">03 · the human</span><h2>Meet Waseem.</h2></div>
         <div class="story__body">
           <p>
             Automancer is founded and run by Waseem Ilyas — an engineer who got tired of watching good
@@ -116,13 +116,16 @@ const principles = [
   <section class="section on-near">
     <div class="wrap">
       <div class="section-head">
-        <p class="eyebrow">How we do things</p>
+        <div class="section-head__top">
+          <p class="eyebrow">How we do things</p>
+          <span class="section-head__log">// rules_kept: 5/5</span>
+        </div>
         <h2>Five rules we actually keep.</h2>
       </div>
       <div class="principles reveal-stagger">
         {principles.map((p, i) => (
-          <div class="principle">
-            <span class="principle__n">{String(i + 1).padStart(2, '0')}</span>
+          <div class="principle" data-spot>
+            <span class="principle__n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
             <h3>{p.name}</h3>
             <p>{p.desc}</p>
           </div>

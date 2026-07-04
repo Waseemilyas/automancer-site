@@ -28,6 +28,8 @@ const caseStudies = defineCollection({
     client: z.string().optional(),
     // Short home/index teaser line, separate from the SEO `description`.
     summary: z.string().optional(),
+    // One-line machine-voice stat summary shown on the /work index card.
+    statline: z.string().optional(),
     // Designed hero + stat band (rendered by /work/[slug], not the markdown body).
     headline: z.string().optional(),
     subhead: z.string().optional(),
