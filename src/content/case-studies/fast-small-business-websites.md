@@ -38,7 +38,3 @@ Cheap and fast usually means cut corners. Not here. These sites are hand-built (
 - Both businesses went from **no web presence to live sites.**
 - **Near-zero running cost** — no monthly platform fees.
 - Legally compliant trading disclosures and SEO fundamentals in place from launch.
-
-[METRIC: enquiry / lead volume since launch — awaiting Waseem]
-
-[TESTIMONIAL: quote from client — awaiting permission & sign-off from Waseem]

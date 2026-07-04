@@ -50,9 +50,3 @@ And it's genuinely *shipped* — live in production since June 2026, now running
 - Consultant reviews at **£300–400 per engagement** replaced by self-service at **£10–80 per document.**
 - Turnaround cut from **hours to minutes.**
 - A new, lower-price customer tier that the human-only model could never have served.
-
-[METRIC: documents processed / revenue since 12 June launch — awaiting Waseem]
-
-[METRIC: number of organisations using it — awaiting Waseem]
-
-[TESTIMONIAL: quote from the consultancy — awaiting permission & sign-off from Waseem. Client must remain anonymised in any published quote.]

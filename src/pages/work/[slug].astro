@@ -96,15 +96,3 @@ const d = entry.data;
     </section>
   </article>
 </BaseLayout>
-
-<script is:inline>
-  // Progressive enhancement: mark placeholder paragraphs ([METRIC: …] /
-  // [TESTIMONIAL: …]) so they read as honest, pending-data notes rather
-  // than body copy. They stay fully visible either way.
-  document.querySelectorAll('.case-prose p').forEach(function (p) {
-    var t = (p.textContent || '').trim();
-    if (t.charAt(0) === '[' && /^\[(METRIC|TESTIMONIAL)/i.test(t)) {
-      p.classList.add('placeholder-note');
-    }
-  });
-</script>
