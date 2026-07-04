@@ -3,6 +3,7 @@ title: "Automation for care providers: where to start"
 description: "A plain-English order of operations for automating a UK supported-living or domiciliary care business, based on real delivered work: canonical records first, then scheduling, then QA."
 date: 2026-07-04
 sector: "Social care / supported living"
+category: "Social care"
 tags: ["care-compliance", "cqc", "supported-living", "erp", "automation-audit"]
 draft: false
 author: "Waseem Ilyas"

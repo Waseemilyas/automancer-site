@@ -54,6 +54,10 @@ const fieldNotes = defineCollection({
     author: z.string().default('Waseem Ilyas'),
     // Short index teaser, separate from the SEO description.
     summary: z.string().optional(),
+    // Sharp topical label shown on the index + article meta. Field notes are
+    // topical, not client-sector-bound, so this — not `sector` — is the label
+    // a reader sees; falls back to `sector` if a note omits it.
+    category: z.string().optional(),
   }),
 });
 

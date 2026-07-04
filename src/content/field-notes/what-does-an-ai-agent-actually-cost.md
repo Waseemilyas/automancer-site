@@ -2,7 +2,8 @@
 title: "What does an AI agent actually cost? A 2026 UK price breakdown"
 description: "Real published UK prices for AI agent and automation projects: audits from £450, not the five- or six-figure guess most vendors make you wait for."
 date: 2026-07-04
-sector: "General"
+sector: "Pricing"
+category: "Pricing"
 tags: ["ai-agent-cost", "pricing", "automation-audit", "small-business-ai"]
 draft: false
 author: "Waseem Ilyas"
