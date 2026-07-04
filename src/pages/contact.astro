@@ -5,7 +5,9 @@
 // NO third-party form processors. Posts application/json to ENDPOINT_URL.
 //
 // Contract:
-//   Body { name, email, company?, message, turnstileToken, website(honeypot) }
+//   Body { name, email, company?, message, turnstileToken, website(honeypot),
+//          utmSource?, utmMedium?, utmCampaign? } — utm_* persisted from the
+//   landing URL by BaseLayout's sessionStorage snippet (first touch wins).
 //   200 {ok:true} · 400 {error} · 403 turnstile_failed
 //   429 {rate_limited, retryAfterMs} · 5xx → mailto fallback.
 //   Content-Type application/json · no credentials.
@@ -225,6 +227,26 @@ const steps = [
           turnstileToken: token,
           website: honeypot
         };
+
+        // Campaign attribution: utm_* params persisted from whatever page
+        // the visit landed on (BaseLayout sessionStorage snippet), with the
+        // current URL as a fallback. Best-effort — never blocks the send.
+        try {
+          var utm = null;
+          var stored = sessionStorage.getItem('aut-utm');
+          if (stored) utm = JSON.parse(stored);
+          if (!utm) {
+            var qs = new URLSearchParams(location.search);
+            utm = {
+              utmSource: qs.get('utm_source') || '',
+              utmMedium: qs.get('utm_medium') || '',
+              utmCampaign: qs.get('utm_campaign') || ''
+            };
+          }
+          if (utm.utmSource) payload.utmSource = String(utm.utmSource).slice(0, 120);
+          if (utm.utmMedium) payload.utmMedium = String(utm.utmMedium).slice(0, 120);
+          if (utm.utmCampaign) payload.utmCampaign = String(utm.utmCampaign).slice(0, 120);
+        } catch (e) {}
 
         submitBtn.disabled = true;
         submitBtn.querySelector('span').textContent = 'Sending…';
