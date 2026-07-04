@@ -1,81 +1,221 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { business } from '../data/business';
+
+const lastUpdated = '4 July 2026';
 ---
 
 <BaseLayout
   title="Privacy Policy"
-  description="Privacy policy for Automancer Ltd. How we collect, use, and protect your data."
+  description="How Automancer Ltd handles your data — in plain English. What we collect, why, where it lives, who touches it, and the rights you have over it."
 >
   <section class="page-hero hatch">
     <div class="page-hero__glow" aria-hidden="true"></div>
     <div class="page-hero__inner">
       <p class="eyebrow">Legal</p>
       <h1 class="page-hero__title">Privacy Policy</h1>
+      <p class="page-hero__sub">
+        We hate privacy-policy legalese as much as you do. So here's the honest version: what
+        actually happens to your data when you get in touch, in words a human can read.
+      </p>
     </div>
   </section>
 
   <section class="section on-dark">
     <div class="wrap wrap--text prose" style="margin-inline:auto">
-      <h2>Controller</h2>
+      <p class="sys sys--spectral">Last updated: {lastUpdated}</p>
+
+      <h2>The short version</h2>
       <p>
-        Automancer Ltd (company no. 17060907)<br />
-        62 Beckfield Road, Bingley, BD16 1QS<br />
-        Contact: <a href="mailto:waseem@automancer.uk">waseem@automancer.uk</a>
+        If you contact us — through the form, by email, or by phone — we collect only what we need
+        to reply to you and, if it goes somewhere, to run the work. We store it on our own server in
+        the UK/EU. We don't sell it, we don't rent it, we don't feed it into ad networks, and we
+        don't sign you up to anything. A handful of trusted suppliers help us run the plumbing
+        (spam-blocking, email, voicemail, website hosting) and nothing more. You can ask us to show
+        you what we hold or delete it at any time, and we'll do it.
+      </p>
+      <p>The longer version, because you deserve the detail:</p>
+
+      <h2>Who we are</h2>
+      <p>
+        This site is run by <strong>{business.legalName}</strong>, a company registered in England
+        and Wales (company no. {business.companyNumber}). We're the "data controller" — the ones
+        responsible for your data and the ones you hold accountable for it. The sole director is
+        Waseem Ilyas.
+      </p>
+      <p>
+        {business.legalName}<br />
+        {business.address.streetAddress}, {business.address.addressLocality}, {business.address.postalCode}<br />
+        Questions about your data? Email <a href={`mailto:${business.email}`}>{business.email}</a> —
+        it reaches Waseem directly.
       </p>
 
-      <h2>Data we collect</h2>
-      <ul>
-        <li>Contact details (name, email, company)</li>
-        <li>Enquiry/project information you share</li>
-        <li>Basic website analytics/cookie data</li>
-      </ul>
+      <h2>What we collect, and why</h2>
 
-      <h2>Why we process data</h2>
+      <h3>When you fill in the contact form</h3>
+      <p>The form asks for, and we store:</p>
       <ul>
-        <li>Respond to enquiries</li>
-        <li>Deliver services</li>
-        <li>Manage contracts/invoicing</li>
-        <li>Improve website and services</li>
+        <li><strong>Your name and email</strong> — so we know who you are and can reply.</li>
+        <li><strong>Your business name and team size</strong> (optional) — context, so the reply is useful.</li>
+        <li><strong>What you wrote</strong> — the message itself, about what you're trying to fix.</li>
+        <li>
+          <strong>Your IP address</strong> — recorded with the submission, purely to spot and block
+          spam and abuse. It isn't used to profile or track you.
+        </li>
+        <li>
+          <strong>An anti-bot token</strong> — a one-time token from the security check on the form
+          (see "Cookies and the security check" below), used only to confirm you're a person.
+        </li>
       </ul>
-
-      <h2>Legal bases</h2>
-      <ul>
-        <li>Contract</li>
-        <li>Legitimate interests</li>
-        <li>Legal obligation</li>
-        <li>Consent (where required)</li>
-      </ul>
-
-      <h2>Data sharing</h2>
       <p>
-        We share data only where needed with trusted service providers (e.g., email, hosting,
-        accounting), under appropriate safeguards.
+        When you hit send, the form posts straight to <strong>our own server</strong> (at
+        api.automancer.uk) and lands in our own database. There's no third-party form service in the
+        middle — no Formspree, no Typeform, no Google Forms. We then send ourselves an email
+        notification so we don't miss you. That's the entire journey.
       </p>
 
-      <h2>Data retention</h2>
+      <h3>When you email us</h3>
       <p>
-        We keep data only as long as needed for service delivery, legal obligations, and
-        legitimate business records.
+        If you email <a href={`mailto:${business.email}`}>{business.email}</a>, we keep the email and
+        anything you send with it, for as long as we need it to help you. Our email runs on Google
+        Workspace (more on that below).
+      </p>
+
+      <h3>When you call us</h3>
+      <p>
+        Calls to our published number are forwarded to us. If you leave a voicemail, it may be
+        recorded and automatically transcribed into text so we can pick it up reliably and get back
+        to you. We keep the recording and transcript only for as long as we need to respond and
+        handle your enquiry. The voicemail and transcription is handled for us by Vonage (see below).
+      </p>
+
+      <h3>When you just browse the site</h3>
+      <p>
+        Almost nothing. This site is static — there's no analytics, no tracking pixels, no
+        advertising tags, no "people who viewed this also viewed" machinery. Our fonts are served
+        from our own site, so your browser doesn't call out to Google or anyone else to load them.
+        The one thing we can't avoid: the site is hosted on GitHub Pages, and like any web host,
+        GitHub's servers keep standard technical logs (including visitor IP addresses) to serve the
+        pages and keep the service secure. That's GitHub's infrastructure doing its job, not us
+        watching you.
+      </p>
+
+      <h2>Our lawful bases</h2>
+      <p>Under UK GDPR we need a lawful reason to process your data. Ours are:</p>
+      <ul>
+        <li>
+          <strong>Legitimate interests</strong> — the main one. When you get in touch, it's in both
+          our interests for us to read your message, reply, and take the conversation forward. We
+          also have a legitimate interest in keeping the form and our systems free of spam and abuse.
+        </li>
+        <li>
+          <strong>Contract</strong> — if we go on to work together, we process what's needed to
+          deliver the work, quote, invoice, and keep proper records.
+        </li>
+        <li>
+          <strong>Legal obligation</strong> — some records (e.g. tax and accounting) we're required
+          by law to keep.
+        </li>
+        <li>
+          <strong>Consent</strong> — where we ever genuinely need it, we'll ask for it plainly, and
+          you can withdraw it just as easily. We don't do marketing emails, so this rarely comes up.
+        </li>
+      </ul>
+
+      <h2>Where your data lives</h2>
+      <p>
+        Enquiries you send through the form live in <strong>our own database, on our own
+        server</strong> — a VPS hosted in the UK/EU (with OVH). It's not sitting in some third-party
+        marketing platform. A few suppliers (below) process specific slices of data on our behalf;
+        where any of them operate outside the UK/EU, that transfer is covered by the appropriate
+        safeguards (such as the UK's International Data Transfer Agreement or adequacy decisions).
+      </p>
+
+      <h2>Who else touches your data (our processors)</h2>
+      <p>
+        We keep this list short on purpose. These are suppliers that process data <em>for</em> us,
+        under contract, only to do the job we've hired them for. We never sell your data, and we
+        never share it for anyone else's marketing.
+      </p>
+      <ul>
+        <li>
+          <strong>Cloudflare (Turnstile)</strong> — the "security check" on the contact form. It
+          tells spam-bots apart from people so our inbox doesn't drown. Used purely for security and
+          anti-fraud.
+        </li>
+        <li>
+          <strong>Vonage</strong> — handles call forwarding, and records and transcribes voicemails
+          so we can respond to them.
+        </li>
+        <li>
+          <strong>Google Workspace</strong> — our email. If you email us, or we email you, it passes
+          through Google's Workspace service (business plan, not the ad-funded consumer one).
+        </li>
+        <li>
+          <strong>GitHub (Pages)</strong> — hosts and serves this website. Its servers hold standard
+          technical access logs, as any web host does.
+        </li>
+      </ul>
+
+      <h2>Cookies and the security check</h2>
+      <p>
+        <strong>We don't use tracking or analytics cookies</strong>, so there's no cookie banner —
+        because there's nothing to consent to. We checked this empirically: loading the site sets no
+        cookies and stores nothing in your browser.
+      </p>
+      <p>
+        The one exception is the security check (Cloudflare Turnstile) on the contact page. To do its
+        job — telling a real person apart from an automated bot — it may set a strictly-necessary
+        cookie while it's actively defending the form. Under UK law (PECR), cookies that are strictly
+        necessary for security and to deliver a service you've asked for are exempt from consent
+        requirements, which is why you don't get a pop-up for it. It's there to protect the form, not
+        to track you, and it only comes into play on the contact page.
+      </p>
+
+      <h2>How long we keep it</h2>
+      <p>
+        We keep enquiry data for as long as it's relevant to a potential or actual engagement — long
+        enough to have the conversation, do the work, and keep the records we're legally required to
+        keep. When it's no longer needed, we delete it. And if you ask us to delete your data sooner,
+        we will (unless the law requires us to hold onto a specific record).
       </p>
 
       <h2>Your rights</h2>
+      <p>Under UK GDPR, you have the right to:</p>
+      <ul>
+        <li><strong>Access</strong> — ask for a copy of the data we hold about you.</li>
+        <li><strong>Rectification</strong> — have anything wrong or out of date corrected.</li>
+        <li><strong>Erasure</strong> — ask us to delete your data ("the right to be forgotten").</li>
+        <li><strong>Restriction</strong> — ask us to pause processing while something's sorted out.</li>
+        <li><strong>Objection</strong> — object to processing we base on legitimate interests.</li>
+        <li><strong>Portability</strong> — get your data in a portable format, where that applies.</li>
+        <li><strong>Withdraw consent</strong> — where we relied on it, at any time.</li>
+      </ul>
       <p>
-        You may request access, correction, deletion, restriction, objection, or portability
-        where applicable.
-      </p>
-      <p>Contact: <a href="mailto:waseem@automancer.uk">waseem@automancer.uk</a></p>
-
-      <h2>Sensitive/regulated work</h2>
-      <p>
-        Automancer excludes certain high-risk engagements (e.g., patient-data-heavy and
-        government/military highly confidential systems) unless explicitly agreed.
+        To exercise any of these, just email <a href={`mailto:${business.email}`}>{business.email}</a>.
+        No special form, no hoops. We'll respond within one month, and there's normally no charge.
       </p>
 
       <h2>Complaints</h2>
-      <p>You can complain to the UK ICO if you believe your data rights were breached.</p>
+      <p>
+        We'd always rather you came to us first so we can put things right — email
+        <a href={`mailto:${business.email}`}> {business.email}</a>. But you also have the right to
+        complain to the UK's data protection regulator, the Information Commissioner's Office (ICO),
+        at <a href="https://ico.org.uk" rel="noopener">ico.org.uk</a>.
+      </p>
 
-      <h2>Updates</h2>
-      <p>We may update this policy from time to time.</p>
+      <h2>Work we don't take on</h2>
+      <p>
+        For everyone's protection, we steer clear of certain high-risk engagements — for example,
+        work heavy on patient data, or highly confidential government/military systems — unless it's
+        explicitly agreed and set up properly first.
+      </p>
+
+      <h2>Changes to this policy</h2>
+      <p>
+        If we change how we handle data, we'll update this page and the "last updated" date at the
+        top. For anything significant, we won't bury it.
+      </p>
     </div>
   </section>
 </BaseLayout>
