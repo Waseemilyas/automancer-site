@@ -36,11 +36,10 @@ export const FIELD_LIMITS = {
 } as const;
 
 /**
- * Cloudflare Turnstile site key for the contact form widget.
- * Replace with the real site key when Turnstile is provisioned for
- * automancer.uk. This placeholder is Cloudflare's published "always
- * passes" test key, so local/dev builds render a working widget without
- * a live Turnstile account.
- * https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+ * Cloudflare Turnstile site key for the contact form widget
+ * (widget "automancer.uk lead form", managed mode, domain automancer.uk).
+ * Site keys are public by design; the paired secret lives in Paperclip
+ * secret management (automancer_turnstile_secret) and is set as
+ * TURNSTILE_SECRET in the AUTD Convex deployment.
  */
-export const TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
+export const TURNSTILE_SITE_KEY = '0x4AAAAAADvPxrMk2dXVzYwH';
