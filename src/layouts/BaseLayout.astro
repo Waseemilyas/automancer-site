@@ -1,0 +1,56 @@
+---
+import SEO from '../components/SEO.astro';
+import JsonLd from '../components/JsonLd.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+export interface Props {
+  title: string;
+  description: string;
+  image?: string;
+  ogType?: 'website' | 'article';
+}
+
+const { title, description, image, ogType = 'website' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <SEO title={`${title} | Automancer`} description={description} image={image} type={ogType} />
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16.png" />
+    <link rel="icon" href="/assets/images/logo.svg" type="image/svg+xml" />
+
+    <!-- Fonts: two display voices (Syne + JetBrains Mono machine voice),
+         Space Grotesk for UI/body, Outfit for long-form reading. Weights
+         trimmed to what the design actually uses; display=swap avoids FOIT. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Business-wide structured data, on every page. -->
+    <JsonLd type="LocalBusiness" />
+
+    <!-- Page-specific extra <head> content: Article JSON-LD on field notes,
+         the Turnstile script on the contact page, etc. -->
+    <slot name="head" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <Nav />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <script is:inline src="/assets/js/main.js" defer></script>
+  </body>
+</html>

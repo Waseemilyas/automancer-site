@@ -1,0 +1,202 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const overview = [
+  { name: 'Automation Opportunity Audit', from: '£450', what: 'A costed map of what to automate first. Fee credited against any follow-on project.' },
+  { name: 'Workflow Sprint', from: '£1,950', what: '1–3 automations live in ~2 weeks.' },
+  { name: 'System / Agent Build', from: '£4,500', what: 'A custom system or AI agent, built properly.' },
+  { name: 'AI Ops Partner', from: '£495/mo', what: 'We run it, watch it, keep automating. Cancel anytime.' },
+];
+
+const offers = [
+  {
+    step: 'Rung 01 · start here',
+    name: 'Automation Opportunity Audit',
+    amt: '£450',
+    note: 'from · credited in full against any project you go on to do',
+    one: 'We find where your time and money are leaking — and hand you a costed plan to plug it.',
+    who: "You know something's inefficient — the double-entry, the spreadsheet gymnastics, the “can you just chase that again” — but you're not sure what's worth fixing first, or whether AI is hype or help for your business. Start here.",
+    includes: [
+      'A working session where we map how your business actually runs — the tools, the handoffs, the bottlenecks.',
+      'A ranked list of automation opportunities, each with an estimate of the time or money it’s costing you now.',
+      'A costed, plain-English plan: what to do first, what it’ll take, and what it’ll cost.',
+      'No obligation to do any of it with us. It’s your plan to keep.',
+    ],
+    catch: 'The catch (there isn’t one): if you go on to do a Sprint or a Build with us, the audit fee comes straight off the price. So at worst you’ve bought a clear plan for £450. At best it’s free.',
+    cta: 'Book an Audit',
+  },
+  {
+    step: 'Rung 02 · act fast',
+    name: 'Workflow Sprint',
+    amt: '£1,950',
+    note: 'from',
+    one: '1–3 automations, live and working, in roughly two weeks.',
+    who: 'You already know what’s broken — the repetitive multi-step admin that never ends — and you want it gone. Fast, focused, no year-long “transformation programme”.',
+    includes: [
+      'We take 1–3 specific, well-defined workflows and automate them end to end.',
+      'Built on tools you already use where we can; new pieces added only where they earn their place.',
+      'Live in production in around two weeks, with you testing it as we go.',
+      'Handover so your team knows how it works — and how to trust the numbers coming out of it.',
+    ],
+    catch: 'Good examples: enquiry-to-quote handling, invoice and reconciliation prep, data synced between two systems that refuse to talk, approval routing, repeat-order processing, report generation that currently eats a person’s Friday.',
+    cta: 'Start a Sprint',
+  },
+  {
+    step: 'Rung 03 · build it right',
+    name: 'System / Agent Build',
+    amt: '£4,500',
+    note: 'from',
+    one: 'A proper custom system or AI agent, built to run your business — not bent around someone else’s.',
+    who: 'You’ve outgrown spreadsheets and the off-the-shelf box that almost-but-not-quite fits. You need real software: a portal, an internal platform, a compliance system, or an AI agent that reads, decides and acts on your behalf.',
+    includes: [
+      'Custom software designed around how you actually work.',
+      'Built the way we build our own company: audited, monitored, backed up, and tested — not a prototype that falls over the first busy Monday.',
+      'AI agents where they add value, with a human kept firmly in control of anything that matters.',
+      'Delivered in governed stages so you see it working before it goes live, and you’re never staring at a big-bang launch.',
+    ],
+    catch: 'What this looks like in the wild: a customer trade portal that replaced phone-and-memory ordering. A care provider’s core platform that turned messy CSVs into 294 clean carer records and auto-scheduled 588 supervisions. A self-service AI product that did a £300–400 consultant job for £10–80. (See the work.)',
+    cta: 'Scope a Build',
+  },
+  {
+    step: 'Rung 04 · stay live',
+    name: 'AI Ops Partner',
+    amt: '£495',
+    per: '/mo',
+    note: 'from · cancel anytime',
+    one: 'We don’t build it and vanish. We stay on, keep it running, and automate the next thing.',
+    who: 'You’ve got automation live and you want it to stay live, watched, and improving — without hiring an in-house engineer or a full-time ops person.',
+    includes: [
+      'We monitor and maintain everything we’ve built for you, so it keeps working while you don’t think about it.',
+      'A steady drip of new automation — we keep finding and removing the next bottleneck.',
+      'A human (Waseem) who knows your setup and answers when you need something.',
+      'Cancel anytime. No twelve-month lock-in, no exit fee, no hostage situation. If it’s not earning its keep, you stop.',
+    ],
+    catch: 'Why it’s priced like this: because we run our own finance, project and content ops on agents, the cost of watching yours is low — and we pass that on. This is the same infrastructure we bet our own business on.',
+    cta: 'Become a Partner',
+  },
+];
+
+const faqs = [
+  { q: 'Is it really this cheap?', a: 'Yes — and there’s a reason it can be. We run our own company on AI agents: our finance ops, our project tracking, even this website. That makes us fast and lean, and we price accordingly. Big consultancies charge enterprise rates because they carry enterprise overheads. We don’t, so you don’t. The prices on this page are real published from prices, not bait.' },
+  { q: 'What if it breaks?', a: 'Two answers. First, we build things properly — audited, monitored, backed up and tested — because we run our own business on the same infrastructure and can’t afford it to fall over either. Second, if you’re on an AI Ops Partner retainer, keeping it running is literally our job; we’re watching it so you don’t have to. And if something does go wrong, a human answers — not a ticket queue.' },
+  { q: 'Do I need to understand AI?', a: 'Not even slightly. That’s our job. You need to understand your business — where the time goes, what the boring jobs are, what “good” looks like. We handle the AI, the engineering and the jargon. You’ll always get plain English and a human explaining what we’ve done and why.' },
+  { q: 'Will a human actually answer?', a: 'Always. This is the promise the whole business is built on: agents do the work, but a human — Waseem — makes every decision and takes every call. When you get in touch, he reads it himself and replies personally. We promise a meeting within one week of first contact. No chatbot, no call centre, no “your query is important to us”.' },
+  { q: 'Where are you, and do you work remotely?', a: 'We’re based in Bradford and work with businesses in Leeds, Manchester and across the UK. We’re remote-first, so where you are isn’t a problem — we’ve built and shipped live systems for clients without needing to be in the room.' },
+  { q: 'What if I just want a website?', a: 'We do those too — fast, affordable, compliant landing sites with no monthly platform fees. It’s the light end of what we offer, and a good first taste of working with us.' },
+];
+---
+
+<BaseLayout
+  title="Services &amp; pricing"
+  description="Four ways to work with us, with real from-prices. Audit from £450, Workflow Sprint from £1,950, System Build from £4,500, AI Ops Partner from £495/mo."
+>
+  <!-- Hero -->
+  <section class="page-hero hatch">
+    <div class="page-hero__glow" aria-hidden="true"></div>
+    <div class="page-hero__inner">
+      <p class="eyebrow">Services &amp; pricing</p>
+      <h1 class="page-hero__title">Four ways in. All of them start with a price you can actually see.</h1>
+      <p class="page-hero__sub">
+        Most automation firms make you sit through a discovery call before they'll admit a number.
+        We publish ours. Here's exactly what we do, who it's for, and what it costs to start.
+      </p>
+      <p class="form__micro" style="margin-top: var(--sp-6); max-width: 60ch;">
+        Every price below is a <em>from</em> price for real, published work — not a teaser rate.
+        Where your job is bigger, we'll tell you before we start, not after.
+      </p>
+    </div>
+  </section>
+
+  <!-- Ladder overview -->
+  <section class="section section--tight on-near">
+    <div class="wrap">
+      <div class="section-head" style="max-width: 46ch;">
+        <h2>Think of these as rungs.</h2>
+        <p>
+          Most people start with an Audit, act on a Sprint or a Build, and — if it's working — keep us
+          on as their AI Ops Partner. You can jump on at any rung.
+        </p>
+      </div>
+      <div class="table-scroll reveal">
+        <table class="ladder-table">
+          <thead>
+            <tr><th>Offer</th><th>From</th><th>What you get</th></tr>
+          </thead>
+          <tbody>
+            {overview.map((r) => (
+              <tr>
+                <td>{r.name}</td>
+                <td class="from">{r.from}</td>
+                <td class="muted">{r.what}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Offer detail blocks -->
+  {offers.map((o, i) => (
+    <section class={`section ${i % 2 === 0 ? 'on-paper' : 'on-dark hatch'}`} id={`offer-${i + 1}`}>
+      <div class="wrap">
+        <div class={`offer${i % 2 === 1 ? ' offer--reverse' : ''}`}>
+          <div class="offer__lede reveal">
+            <p class="offer__step">{o.step}</p>
+            <h2 class="offer__name">{o.name}</h2>
+            <p class="offer__price">
+              <span class="offer__amt">{o.amt}</span>{o.per && <span class="offer__amt" style="font-size:var(--t-1)">{o.per}</span>}
+              <span class="note">{o.note}</span>
+            </p>
+            <p class="offer__one">{o.one}</p>
+            <p class="offer__who">{o.who}</p>
+            <p style="margin-top: var(--sp-8)">
+              <a href="/contact" class="btn btn--primary"><span>{o.cta}</span><span class="btn__arrow">→</span></a>
+            </p>
+          </div>
+          <div class="offer__includes reveal">
+            <h4>What's included</h4>
+            <ul class="ticks">
+              {o.includes.map((it) => <li>{it}</li>)}
+            </ul>
+            <p class="offer__catch">{o.catch}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <!-- FAQs -->
+  <section class="section on-near">
+    <div class="wrap wrap--text">
+      <div class="section-head">
+        <p class="eyebrow">Straight answers</p>
+        <h2>The questions everyone asks.</h2>
+      </div>
+      <div class="faq">
+        {faqs.map((f) => (
+          <details>
+            <summary>{f.q}<span class="plus" aria-hidden="true"></span></summary>
+            <p class="faq__a">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="section on-dark cta hatch">
+    <div class="cta__glow" aria-hidden="true"></div>
+    <div class="wrap">
+      <h2 class="cta__head">Start where it makes sense for you.</h2>
+      <p class="cta__body">
+        Not sure which rung you're on? Start with an Audit — it's designed to answer exactly that,
+        and the fee comes back to you if you go further.
+      </p>
+      <div class="cta__ctas">
+        <a href="/contact" class="btn"><span>Book an Audit — from £450</span></a>
+        <a href="/contact" class="btn btn--ghost"><span>Ask us which offer fits</span><span class="btn__arrow">→</span></a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

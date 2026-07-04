@@ -1,0 +1,82 @@
+---
+/**
+ * Reusable schema.org JSON-LD emitter.
+ *
+ * Usage:
+ *   <JsonLd type="LocalBusiness" />
+ *   <JsonLd type="Article" article={{ title, description, date, author, url }} />
+ */
+import { business, services } from '../data/business';
+
+interface ArticleProps {
+  title: string;
+  description: string;
+  date: Date;
+  author: string;
+  url: string;
+}
+
+type Props =
+  | { type: 'LocalBusiness'; article?: never }
+  | { type: 'Article'; article: ArticleProps };
+
+const { type } = Astro.props;
+
+let json: Record<string, unknown>;
+
+if (type === 'LocalBusiness') {
+  json = {
+    '@context': 'https://schema.org',
+    '@type': 'ProfessionalService',
+    name: business.tradingName,
+    legalName: business.legalName,
+    url: business.url,
+    email: business.email,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: business.address.streetAddress,
+      addressLocality: business.address.addressLocality,
+      postalCode: business.address.postalCode,
+      addressCountry: business.address.addressCountry,
+    },
+    areaServed: business.areasServed,
+    description: business.description,
+    makesOffer: services.map((service) => ({
+      '@type': 'Offer',
+      itemOffered: {
+        '@type': 'Service',
+        name: service.name,
+        description: service.description,
+      },
+      priceSpecification: {
+        '@type': 'UnitPriceSpecification',
+        price: service.priceFrom,
+        priceCurrency: 'GBP',
+        unitText: service.priceUnit === 'month' ? 'MONTH' : undefined,
+        minPrice: service.priceFrom,
+      },
+    })),
+  };
+} else {
+  const { article } = Astro.props;
+  json = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    description: article.description,
+    datePublished: article.date.toISOString(),
+    author: {
+      '@type': 'Person',
+      name: article.author,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: business.tradingName,
+      url: business.url,
+    },
+    mainEntityOfPage: article.url,
+  };
+}
+---
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify(json)} />

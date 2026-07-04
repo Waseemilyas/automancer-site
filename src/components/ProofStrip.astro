@@ -1,0 +1,84 @@
+---
+/**
+ * The meta-story made literal: a live-feeling system readout proving the
+ * site is itself the demo of an AI-run business. Every value here is REAL
+ * build-time data (git SHA + build timestamp) — never faked numbers.
+ *
+ * A small inline script converts the real build timestamp into a live
+ * "deployed Nh ago" counter client-side (honest, since the timestamp is
+ * genuine) and ticks it while the page is open.
+ */
+import { build, formatBuildStamp } from '../data/build';
+
+const stamp = formatBuildStamp();
+const sha = build.commit ?? 'local';
+const iso = build.time.toISOString();
+
+// The marquee duplicates its content so the CSS translateX(-50%) loop is seamless.
+const items = [
+  { label: 'system', value: 'automancer.uk' },
+  { label: 'maintained by', value: 'AI agents' },
+  { label: 'human in the loop', value: 'waseem' },
+  { label: 'last deploy', value: stamp, live: true },
+  { label: 'build', value: sha },
+  { label: 'status', value: 'operational' },
+];
+---
+
+<aside class="proof-strip" aria-label="Live system status">
+  <div class="proof-strip__track" aria-hidden="true">
+    {[0, 1].map(() => (
+      <div class="proof-strip__item-group" style="display:inline-flex;align-items:center;gap:var(--sp-8);">
+        <span class="proof-strip__dot"></span>
+        {items.map((it, i) => (
+          <>
+            <span class="proof-strip__item">
+              <span>{it.label}:</span>
+              {it.live ? (
+                <b data-build-since={iso}>{it.value}</b>
+              ) : (
+                <b>{it.value}</b>
+              )}
+            </span>
+            {i < items.length - 1 && <span class="proof-strip__sep">·</span>}
+          </>
+        ))}
+      </div>
+    ))}
+  </div>
+  {/* Screen-reader-friendly static summary (marquee is aria-hidden). */}
+  <p class="sr-only">
+    This site is maintained by AI agents with a human, Waseem, in the loop.
+    Last deployed {stamp}, build {sha}.
+  </p>
+</aside>
+
+<script is:inline>
+  (function () {
+    var el = document.querySelector('[data-build-since]');
+    if (!el) return;
+    var base = el.getAttribute('data-build-since');
+    var full = el.textContent;
+    var t = new Date(base).getTime();
+    if (isNaN(t)) return;
+    function rel() {
+      var s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+      if (s < 90) return s + 's ago';
+      var m = Math.floor(s / 60);
+      if (m < 90) return m + 'm ago';
+      var h = Math.floor(m / 60);
+      if (h < 48) return h + 'h ago';
+      return Math.floor(h / 24) + 'd ago';
+    }
+    // Show the honest relative age; keep the absolute stamp in the title.
+    var live = document.querySelectorAll('[data-build-since]');
+    function tick() {
+      live.forEach(function (n) {
+        n.setAttribute('title', full);
+        n.textContent = rel();
+      });
+    }
+    tick();
+    setInterval(tick, 15000);
+  })();
+</script>

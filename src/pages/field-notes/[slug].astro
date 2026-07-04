@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import JsonLd from '../../components/JsonLd.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const isProd = import.meta.env.PROD;
+  // Drafts never build into the production site (no unlinked placeholder
+  // pages ship); they remain reachable in dev for review.
+  const posts = (await getCollection('field-notes')).filter(
+    (e) => !(isProd && e.data.draft)
+  );
+  return posts.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+
+const words = (entry.body ?? '').trim().split(/\s+/).filter(Boolean).length;
+const readMins = Math.max(1, Math.round(words / 200));
+const canonicalURL = new URL(Astro.url.pathname, Astro.site).toString();
+const fmt = (dt: Date) =>
+  dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+
+<BaseLayout title={d.title} description={d.description} ogType="article">
+  <Fragment slot="head">
+    <JsonLd
+      type="Article"
+      article={{ title: d.title, description: d.description, date: d.date, author: d.author, url: canonicalURL }}
+    />
+  </Fragment>
+
+  <article>
+    <header class="page-hero hatch">
+      <div class="page-hero__glow" aria-hidden="true"></div>
+      <div class="page-hero__inner">
+        <div class="article-head" style="margin-inline:0">
+          <p class="article-meta">
+            <span>{fmt(d.date)}</span>
+            <span>·</span>
+            <span>{readMins} min read</span>
+            <span>·</span>
+            <span>{d.author}</span>
+            {d.draft && <><span>·</span><span class="sys--spectral">draft</span></>}
+          </p>
+          <h1 class="article-title" style="max-width:20ch">{d.title}</h1>
+          <p class="page-hero__sub" style="margin-top:0">{d.description}</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section on-dark">
+      <div class="wrap">
+        <div class="prose" style="margin-inline:0">
+          <Content />
+        </div>
+
+        <footer class="article-head" style="margin-inline:0; margin-top: clamp(3rem,6vw,5rem)">
+          <div class="rule--spectral" style="margin-bottom: var(--sp-8)"></div>
+          <p class="form__micro" style="margin-bottom: var(--sp-6)">
+            Written by an Automancer agent · reviewed and published by {d.author}. Agents do the work;
+            a human makes the call.
+          </p>
+          <a href="/field-notes" class="arrow-link">All field notes <span class="btn__arrow">→</span></a>
+        </footer>
+      </div>
+    </section>
+
+    <section class="section on-near cta">
+      <div class="wrap">
+        <h2 class="cta__head" style="font-size:var(--t-4)">Sounds like your Tuesday?</h2>
+        <p class="cta__body">Tell us what's eating your week. Waseem reads every enquiry himself.</p>
+        <div class="cta__ctas">
+          <a href="/contact" class="btn"><span>Book an Audit — from £450</span></a>
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

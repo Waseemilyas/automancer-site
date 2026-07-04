@@ -1,0 +1,273 @@
+---
+// Contact page.
+//
+// Wired to the finalised AUTD lead-intake endpoint (src/config/site.ts).
+// NO third-party form processors. Posts application/json to ENDPOINT_URL.
+//
+// Contract:
+//   Body { name, email, company?, message, turnstileToken, website(honeypot) }
+//   200 {ok:true} · 400 {error} · 403 turnstile_failed
+//   429 {rate_limited, retryAfterMs} · 5xx → mailto fallback.
+//   Content-Type application/json · no credentials.
+//   NOTE: the API CORS origin is locked to https://automancer.uk, so live
+//   submissions only succeed from production. Local dev/preview will hit a
+//   CORS wall and fall through to the mailto fallback (expected).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ENDPOINT_URL, TURNSTILE_SITE_KEY, FIELD_LIMITS } from '../config/site';
+import { business } from '../data/business';
+
+const steps = [
+  { h: 'Your message enters our pipeline', p: 'It lands in the same project system our AI agents run — the one we built and use every day. Nothing gets lost, nothing sits ignored in an inbox.' },
+  { h: 'Waseem reads it. Personally.', p: 'No auto-responder pretending to be a person. An actual human reads what you wrote and works out how we can help.' },
+  { h: 'You get a personal email back', p: 'From Waseem, to arrange a proper conversation — and we\'ll have that meeting within one week of you getting in touch.' },
+  { h: 'We take it from there', p: 'Usually that means an Automation Audit, but if a quick pointer is all you need, we\'ll happily give you that too.' },
+];
+---
+
+<BaseLayout
+  title="Contact"
+  description="Tell us what's eating your week. No calendar gauntlet, no chatbot. Waseem reads it himself, and we promise a meeting within one week of first contact."
+>
+  <script
+    slot="head"
+    is:inline
+    src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+    async
+    defer></script>
+
+  <section class="page-hero hatch">
+    <div class="page-hero__glow" aria-hidden="true"></div>
+    <div class="page-hero__inner">
+      <p class="eyebrow">Get in touch</p>
+      <h1 class="page-hero__title">Tell us what's eating your week.</h1>
+      <p class="page-hero__sub">
+        No calendar gauntlet. No chatbot. No twelve-step sales sequence. Fill in a short form, and
+        Waseem reads it himself and emails you back — personally.
+      </p>
+    </div>
+  </section>
+
+  <section class="section on-near">
+    <div class="wrap">
+      <div class="contact-grid">
+        <!-- Left: the promise -->
+        <div>
+          <div class="promise reveal">
+            <p class="sys sys--spectral" style="margin-bottom: var(--sp-4)">the one-week promise</p>
+            <p class="promise__big">1 week<span class="u">to a meeting, from first contact</span></p>
+            <p>
+              Not a number in the diary three weeks out, not an automated "someone will be in touch" —
+              an actual conversation with an actual human, within seven days. Agents do the heavy lifting
+              behind the scenes, but a human makes every decision and takes every call.
+            </p>
+          </div>
+          <p class="form__micro" style="margin-top: var(--sp-8); max-width: 40ch;">
+            Prefer to just ask a question? Use the form for anything — a quick query, a "could you even
+            do this?", a proper project. It all reaches the same place: Waseem.
+          </p>
+          <p class="form__micro" style="margin-top: var(--sp-6);">
+            Based in Bradford · Leeds · Manchester · UK-wide, remote-first.
+          </p>
+        </div>
+
+        <!-- Right: the form -->
+        <div>
+          <div class="section-head" style="margin-bottom: var(--sp-8); max-width:100%;">
+            <h2 style="font-size:var(--t-3)">Start here.</h2>
+            <p style="font-size:var(--t-0)">
+              Tell us a bit about your business and what's driving you mad. You don't need to know what
+              the solution is — that's our job. The more you tell us about the boring, repetitive,
+              expensive stuff, the better.
+            </p>
+          </div>
+
+          <form id="contact-form" class="form" method="POST" novalidate data-endpoint={ENDPOINT_URL}>
+            <div class="field">
+              <label for="name">Your name</label>
+              <input type="text" id="name" name="name" required autocomplete="name" maxlength={FIELD_LIMITS.name} />
+            </div>
+            <div class="field">
+              <label for="company">Business name</label>
+              <input type="text" id="company" name="company" autocomplete="organization" maxlength={FIELD_LIMITS.company} />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required autocomplete="email" maxlength={FIELD_LIMITS.email} />
+            </div>
+            <div class="field">
+              <label for="time-sink">What's eating your week?</label>
+              <textarea id="time-sink" name="time_sink" required maxlength={FIELD_LIMITS.message}
+                placeholder="The boring, repetitive, expensive stuff. What takes up too much of your team's time?"></textarea>
+            </div>
+            <div class="field">
+              <label for="team-size">Roughly how big is your team? <span class="opt">(optional)</span></label>
+              <input type="text" id="team-size" name="team_size" autocomplete="off" maxlength="80" placeholder="e.g. just me, 12, ~500" />
+            </div>
+            <div class="field">
+              <label for="extra">Anything else we should know? <span class="opt">(optional)</span></label>
+              <textarea id="extra" name="extra" maxlength="2000"></textarea>
+            </div>
+
+            <!-- Honeypot: must submit empty. Off-screen + aria-hidden + no autofill/tab. -->
+            <div aria-hidden="true" style="position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden;">
+              <label for="website">Leave this field blank</label>
+              <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+            </div>
+
+            <div class="field">
+              <span class="sys" style="color:var(--muted)">Security check</span>
+              <div class="cf-turnstile turnstile-slot" data-sitekey={TURNSTILE_SITE_KEY} data-theme="dark"></div>
+            </div>
+
+            <p id="form-error" class="form__micro" style="display:none; color:var(--spec-1)" role="alert"></p>
+
+            <button type="submit" class="btn btn--full"><span>Send it to Waseem</span></button>
+
+            <p class="form__micro">
+              No spam, no sales sequence, no sharing your details. Just a human reading what you sent.
+            </p>
+          </form>
+
+          <div id="form-confirm" class="form-confirm" style="display:none" role="status" aria-live="polite">
+            <p class="sys sys--spectral" style="margin-bottom: var(--sp-4)">received</p>
+            <h2>Thanks — that's landed with Waseem.</h2>
+            <p>
+              He reads these himself, and you'll get a personal reply. We promise a meeting within one
+              week of first contact. No chatbot, no queue.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What happens next -->
+  <section class="section on-dark hatch">
+    <div class="wrap wrap--text">
+      <div class="section-head">
+        <p class="eyebrow">After you hit send</p>
+        <h2>What happens next.</h2>
+      </div>
+      <div class="steps-num">
+        {steps.map((s) => (
+          <div class="step-num">
+            <span class="step-num__n"></span>
+            <div>
+              <h3>{s.h}</h3>
+              <p>{s.p}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p class="form__micro" style="margin-top: var(--sp-8)">
+        That's it. No funnel, no pressure, no "book a slot with a bot". Just tell us what's wrong and
+        let a human sort it.
+      </p>
+    </div>
+  </section>
+
+  <script is:inline define:vars={{ endpoint: ENDPOINT_URL, limits: FIELD_LIMITS, email: business.email }}>
+    (function () {
+      var form = document.getElementById('contact-form');
+      if (!form) return;
+      var errEl = document.getElementById('form-error');
+      var confirmEl = document.getElementById('form-confirm');
+      var submitBtn = form.querySelector('button[type="submit"]');
+
+      function showError(msg) {
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+      }
+      function clearError() { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+      function turnstileToken() {
+        // Prefer the official API; fall back to the injected hidden input.
+        try { if (window.turnstile) return window.turnstile.getResponse() || ''; } catch (e) {}
+        var input = form.querySelector('[name="cf-turnstile-response"]');
+        return input ? input.value : '';
+      }
+      function resetTurnstile() { try { if (window.turnstile) window.turnstile.reset(); } catch (e) {} }
+
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        clearError();
+
+        var name = form.name.value.trim();
+        var emailVal = form.email.value.trim();
+        var company = form.company.value.trim();
+        var timeSink = form.time_sink.value.trim();
+        var team = form.team_size.value.trim();
+        var extra = form.extra.value.trim();
+        var honeypot = form.website.value;
+
+        // Compose the single message field the intake contract expects.
+        var message = timeSink;
+        if (team) message += '\n\nTeam size: ' + team;
+        if (extra) message += '\n\nAlso: ' + extra;
+
+        // Client-side validation mirroring the endpoint's limits.
+        if (!name) return showError('Please add your name.');
+        if (name.length > limits.name) return showError('Name is a bit long — keep it under ' + limits.name + ' characters.');
+        if (!emailVal || emailVal.indexOf('@') === -1) return showError('Please add a valid email so Waseem can reply.');
+        if (emailVal.length > limits.email) return showError('That email looks too long to be right.');
+        if (company.length > limits.company) return showError('Business name is a bit long — under ' + limits.company + ' characters, please.');
+        if (!timeSink) return showError('Tell us what’s eating your week — even a sentence helps.');
+        if (message.length > limits.message) return showError('That’s a lot of detail. Please trim it under ' + limits.message + ' characters.');
+
+        var token = turnstileToken();
+        if (!token) return showError('Please complete the security check above.');
+
+        var payload = {
+          name: name,
+          email: emailVal,
+          company: company || undefined,
+          message: message,
+          turnstileToken: token,
+          website: honeypot
+        };
+
+        submitBtn.disabled = true;
+        submitBtn.querySelector('span').textContent = 'Sending…';
+
+        try {
+          var res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'omit',
+            body: JSON.stringify(payload)
+          });
+
+          if (res.status === 200) {
+            var ok = await res.json().catch(function () { return {}; });
+            if (ok && ok.ok) {
+              form.style.display = 'none';
+              confirmEl.style.display = 'block';
+              confirmEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              return;
+            }
+          }
+
+          if (res.status === 400) {
+            var body = await res.json().catch(function () { return {}; });
+            showError(body && body.error ? body.error : 'Something in the form needs a second look.');
+          } else if (res.status === 403) {
+            resetTurnstile();
+            showError('The security check needs another go — please complete it again and resend.');
+          } else if (res.status === 429) {
+            var rl = await res.json().catch(function () { return {}; });
+            var secs = rl && rl.retryAfterMs ? Math.ceil(rl.retryAfterMs / 1000) : null;
+            showError('Whoa, easy — that’s a lot of sending. ' + (secs ? 'Give it about ' + secs + ' seconds' : 'Give it a moment') + ' and try once more.');
+          } else {
+            showError('Something went wrong on our end. Email Waseem directly at ' + email + ' and he’ll pick it up.');
+          }
+        } catch (err) {
+          // Network / CORS failure (expected off the production origin).
+          showError('Couldn’t reach us just now. Please email ' + email + ' directly and we’ll take it from there.');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.querySelector('span').textContent = 'Send it to Waseem';
+        }
+      });
+    })();
+  </script>
+</BaseLayout>

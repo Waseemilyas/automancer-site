@@ -1,0 +1,51 @@
+---
+/**
+ * Primary navigation. Machine-voice (mono) links, the arcane sigil mark,
+ * a spectral underline on hover/active. Mobile menu is a full-screen overlay.
+ */
+const navLinks = [
+  { href: '/services', label: 'Services' },
+  { href: '/work', label: 'Work' },
+  { href: '/field-notes', label: 'Field Notes' },
+  { href: '/about', label: 'About' },
+];
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? currentPath === '/' : currentPath.startsWith(href);
+---
+
+<header class="nav" role="banner">
+  <a href="/" class="nav__brand" aria-label="Automancer — home">
+    <img src="/assets/images/logo.svg" alt="" class="nav__mark" width="30" height="34" />
+    <span class="nav__wordmark">Automancer</span>
+  </a>
+
+  <nav class="nav__links" aria-label="Primary">
+    {navLinks.map((link) => (
+      <a
+        href={link.href}
+        class="nav__link"
+        aria-current={isActive(link.href) ? 'page' : undefined}
+      >
+        {link.label}
+      </a>
+    ))}
+    <a href="/contact" class="btn btn--sm"><span>Contact</span></a>
+  </nav>
+
+  <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<div class="mobile-menu" id="mobile-menu" aria-label="Menu">
+  <button class="mobile-menu__close" aria-label="Close menu">&times;</button>
+  <a href="/" class="mobile-menu__link"><span class="sys">00</span>Home</a>
+  {navLinks.map((link, i) => (
+    <a href={link.href} class="mobile-menu__link">
+      <span class="sys">{String(i + 1).padStart(2, '0')}</span>{link.label}
+    </a>
+  ))}
+  <a href="/contact" class="mobile-menu__link"><span class="sys">→</span>Contact</a>
+</div>

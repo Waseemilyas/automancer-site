@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Page not found"
+  description="This page has vanished — or never existed. Let's get you back to something real."
+>
+  <section class="notfound hatch">
+    <div class="notfound__glow" aria-hidden="true"></div>
+    <div class="wrap" style="position:relative; z-index:2;">
+      <p class="sys sys--spectral" style="justify-content:center; display:inline-flex;">missing incantation</p>
+      <p class="notfound__code">404</p>
+      <p class="notfound__msg">This spell fizzled.</p>
+      <p class="notfound__sub">
+        The page you're after has vanished, moved, or never existed. Even very good engineering can't
+        conjure something from a broken link. Let's get you back to solid ground.
+      </p>
+      <div class="cta__ctas" style="margin-top: var(--sp-10)">
+        <a href="/" class="btn"><span>Back to home</span></a>
+        <a href="/work" class="btn btn--ghost"><span>See the work</span><span class="btn__arrow">→</span></a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
