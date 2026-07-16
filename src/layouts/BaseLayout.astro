@@ -67,6 +67,12 @@ const { title, description, image, ogType = 'website' } = Astro.props;
         }
       })();
     </script>
+
+    <!-- Production-only browser error monitoring. The module itself requires
+         PUBLIC_AUT_SENTRY_WEB_DSN, so preview/dev builds never emit events. -->
+    <script>
+      import '../scripts/sentry';
+    </script>
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to content</a>
