@@ -34,12 +34,14 @@ export const GET: APIRoute = () => {
 
   lines.push('## Contact');
   lines.push(`Email: ${business.email}`);
+  lines.push(`Phone: ${business.phone} (voicemail line — reaches Waseem, same as the form)`);
   lines.push(`Web: ${business.url}`);
   lines.push(`Contact form: ${business.url}/contact`);
   lines.push('');
 
   lines.push('## Company');
   lines.push(`${business.legalName}, company no. ${business.companyNumber}.`);
+  lines.push(`Registered with the ICO (Information Commissioner's Office), registration no. ${business.icoRegistration}.`);
   lines.push(
     `${business.address.streetAddress}, ${business.address.addressLocality}, ${business.address.postalCode}, United Kingdom.`
   );

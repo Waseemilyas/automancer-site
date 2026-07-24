@@ -22,8 +22,14 @@ export const business = {
   legalName: 'Automancer Ltd',
   tradingName: 'Automancer',
   companyNumber: '17060907',
+  /** ICO (Information Commissioner's Office) data-protection registration. */
+  icoRegistration: 'ZC180569',
   url: 'https://automancer.uk',
   email: 'waseem@automancer.uk',
+  /** Voicemail line (Vonage) that feeds the intake pipeline. */
+  phone: '+44 7451 261333',
+  /** E.164, no spaces — for tel: links. */
+  phoneTel: '+447451261333',
   address: {
     streetAddress: '62 Beckfield Road',
     addressLocality: 'Bingley',
