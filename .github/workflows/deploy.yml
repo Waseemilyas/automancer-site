@@ -47,6 +47,12 @@ jobs:
 
       - name: Build
         run: pnpm run build
+        # Sourced from the repository Actions variable (populated from BWS
+        # AUT_SENTRY_WEB_DSN). Astro/Vite only exposes PUBLIC_* values to the
+        # browser bundle, so this makes production Pages builds observable
+        # without placing a DSN in the repository or local dotenv files.
+        env:
+          PUBLIC_AUT_SENTRY_WEB_DSN: ${{ vars.PUBLIC_AUT_SENTRY_WEB_DSN }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
