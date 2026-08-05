@@ -2,7 +2,9 @@
 
 Public marketing site for automancer.uk. Astro static build ("Grimoire Terminal"
 design: black/white with a spectral pink→purple accent), content collections for
-case studies and field notes, self-hosted fonts, zero third-party cookies.
+case studies and field notes, self-hosted fonts, and no advertising or analytics
+cookies. Cloudflare Turnstile can set a temporary, strictly necessary anti-abuse
+cookie on protected forms.
 
 ## How to run
 
