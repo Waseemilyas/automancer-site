@@ -7,12 +7,9 @@
 // Both are plain Markdown files with typed frontmatter, loaded from
 // src/content/<collection>/*.md via the glob() loader (Content Layer API).
 
-// `z` comes straight from zod rather than the deprecated `astro:content`
-// re-export, which is on Astro's removal path. zod is pinned to the same
-// caret range astro itself declares so both resolve to one shared instance.
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
-import { z } from 'zod';
+import { z } from 'astro/zod';
 
 const sharedFrontmatter = {
   title: z.string(),
