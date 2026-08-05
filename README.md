@@ -24,5 +24,5 @@ DNS on Cloudflare).
 - `src/content/` — case studies and field notes (content collections).
 - `src/data/business.ts` — source data for `llms.txt`/JSON-LD/pricing.
 - `ops/og-image/` — regenerable OG image.
-- See `../automancer-bd/docs/BUILD-2026-07-04.md` for the wider system map this
-  site is part of (lead pipeline, dashboard, etc).
+- The wider system map is maintained in the private `automancer-bd` repository
+  at `docs/BUILD-2026-07-04.md`.
