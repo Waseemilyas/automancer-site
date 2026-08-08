@@ -1,0 +1,9 @@
+{
+  "product": "the Automancer public website at automancer.uk",
+  "audience": "visitors to the site, including prospective clients",
+  "tagPrefix": "v",
+  "changelog": "CHANGELOG.md",
+  "productionRef": "main",
+  "publishGithub": true,
+  "glossary": []
+}
