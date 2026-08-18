@@ -24,7 +24,7 @@ A brand-new company can't sell what nobody can find. But the traditional options
 
 ## Two businesses, from nothing to live
 
-**A new UK travel agency.** We took the client from zero web presence to a live, legally compliant marketing site: services sections, a tested working enquiry form, WhatsApp and phone contact wiring, and the required Companies Act trading-disclosure footer. We handled the lot end to end — domain purchase, DNS, HTTPS hosting, and interim email routing — so they had a working front door and a working inbox from day one.
+**A new UK travel agency.** We took the client from zero web presence to a live, legally compliant marketing site: services sections, a tested working enquiry form, WhatsApp and phone contact wiring, and the trading-disclosure footer we build into every UK limited company site. We handled the lot end to end — domain purchase, DNS, HTTPS hosting, and interim email routing — so they had a working front door and a working inbox from day one.
 
 **A local credit-hire firm.** A sharp single-page marketing site with the technical fundamentals baked in: structured data so search engines understand the business, plus the SEO basics — sitemap, robots and the rest — done properly. Live, fast, and findable.
 

@@ -47,10 +47,11 @@ Most of the cost difference between a good small site and a bad one is invisible
 on the homepage. Three things are worth paying for, and templates routinely miss
 all three.
 
-**Compliance.** A UK limited company is legally required to show its trading
-disclosures on its website, and a new business is exactly the sort of business
-that has never been told this. It is a footer. It takes minutes to do properly
-and it is embarrassing to be missing. Check any quote includes it.
+**Compliance.** Every UK limited company site we build carries the same four
+things in the footer: registered name, company number, place of registration and
+registered office address. A new business is exactly the sort of business nobody
+has ever walked through this with. It is a footer. It takes minutes to do
+properly and it is embarrassing to be missing. Check any quote includes it.
 
 **The technical fundamentals.** Structured data so search engines and, these
 days, AI assistants can tell what your business actually is and where it
@@ -67,8 +68,8 @@ never have to learn what a nameserver is.
 
 We took a new UK travel agency from zero web presence to a live, legally
 compliant marketing site: services sections, a tested working enquiry form,
-WhatsApp and phone contact wiring, and the required Companies Act
-trading-disclosure footer. We handled the domain purchase, DNS, HTTPS hosting
+WhatsApp and phone contact wiring, and the trading-disclosure footer we build
+into every one. We handled the domain purchase, DNS, HTTPS hosting
 and interim email routing too, so they had a working front door and a working
 inbox from day one.
 
@@ -114,3 +115,6 @@ page](/services), and we would rather tell you a site is a small job than sell
 you a big one. If you want a straight answer about your own site, fill in [the
 form](/contact). Waseem reads it himself and emails you back, we promise a
 meeting within one week, and a human makes every decision along the way.
+
+*We build software. We're not solicitors, and none of the above is legal advice —
+for that, ask someone qualified to give it.*
