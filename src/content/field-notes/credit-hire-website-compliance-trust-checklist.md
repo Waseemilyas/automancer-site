@@ -1,6 +1,6 @@
 ---
 title: "Credit hire firms: the website compliance and trust checklist"
-description: "What a UK credit hire website needs: the registration details we put in every footer, the trust signals that win the enquiry, and the SEO basics templates skip."
+description: "What a UK credit hire website needs: the registration details that belong in the footer, the trust signals that win the enquiry, and the SEO basics templates skip."
 date: 2026-08-10
 sector: "Small business / web"
 category: "Websites"
@@ -17,10 +17,9 @@ find your website.
 
 A credit hire website needs four things: a plain explanation of how a non-fault
 replacement vehicle works and who pays for it, visible proof that you're a real
-registered UK company, the registration details we put in the footer of every UK
-limited company site we build, and structured data so search engines know you're
-a local business serving a specific area. Design comes after all four, not
-before.
+registered UK company, the registration details that belong in the footer, and
+structured data so search engines know you're a local business serving a specific
+area. Design comes after all four, not before.
 
 That list is short because the job is narrow. Nobody browses credit hire sites
 for pleasure. Your visitor arrived from a search or a garage's recommendation,
@@ -54,19 +53,20 @@ What the shop window has to carry:
 
 ## The footer most small sites get wrong
 
-Here are the four things we put in the footer of every UK limited company site we
-build: the company's registered name, its registered number, the part of the UK
-where it's registered, and the address of its registered office. It's a footer,
-not a project. If your own site is missing them, that's worth a conversation with
-your accountant or solicitor as well as with whoever built it.
+Here's the list we work through when we build a site for a UK limited company:
+the company's registered name, its registered number, the part of the UK where
+it's registered, and the address of its registered office. It's a footer, not a
+project, and leaving it off costs you credibility long before it costs you
+anything else. If your own site is missing any of it, that's worth a conversation
+with your accountant or solicitor as well as with whoever built the site.
 
-It matters twice as much in this sector. A customer who has just been told to be
-careful about credit hire will go looking for exactly this sort of detail, and an
-honest firm with nothing in its footer gives them no way to tell the difference.
-We built that footer into a new travel agency's site when we took them from zero
-web presence to live, because a brand-new company is precisely the sort of
-business nobody has ever walked through this with. It's the cheapest credibility
-you'll ever buy.
+The footer matters twice as much in this sector. A customer who has just been
+told to be careful about credit hire will go looking for exactly this sort of
+detail, and an honest firm with nothing in its footer gives them no way to tell
+the difference. We built that footer into a new travel agency's site when we took
+them from zero web presence to live, because a brand-new company is precisely the
+sort of business nobody has ever thought to mention it to. It's the cheapest
+credibility you'll ever buy.
 
 ## Getting found: the boring layer that decides it
 
@@ -134,5 +134,5 @@ want a straight answer about your own site, fill in [the form](/contact). Waseem
 reads it himself and emails you back, we promise a meeting within one week, and a
 human makes every decision along the way.
 
-*We build software. We're not solicitors, and none of the above is legal advice —
-for that, ask someone qualified to give it.*
+*We build software. We are not solicitors, and none of this is legal advice. For
+that, ask someone qualified to give it.*
