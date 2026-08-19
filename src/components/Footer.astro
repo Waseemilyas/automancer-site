@@ -16,7 +16,8 @@ const year = new Date().getFullYear();
           <span class="footer__word">Automancer</span>
         </div>
         <p class="footer__addr">
-          {business.legalName} · Company No. {business.companyNumber}<br />
+          {business.legalName} · Registered in {business.placeOfRegistration} · Company No.{' '}
+          {business.companyNumber}<br />
           {business.address.streetAddress}, {business.address.addressLocality}, {business.address.postalCode}<br />
           <a href={`mailto:${business.email}`} class="tlink">{business.email}</a>
         </p>

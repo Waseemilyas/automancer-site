@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { business } from '../data/business';
 
-const lastUpdated = '4 July 2026';
+const lastUpdated = '17 August 2026';
 ---
 
 <BaseLayout
@@ -199,10 +199,16 @@ const lastUpdated = '4 July 2026';
 
       <h2>Complaints</h2>
       <p>
-        We'd always rather you came to us first so we can put things right — email
-        <a href={`mailto:${business.email}`}> {business.email}</a>. But you also have the right to
-        complain to the UK's data protection regulator, the Information Commissioner's Office (ICO),
-        at <a href="https://ico.org.uk" rel="noopener">ico.org.uk</a>.
+        <strong>You have the right to complain to us</strong> about how we've handled your data.
+        Email <a href={`mailto:${business.email}`}>{business.email}</a> and say you're making a
+        complaint — there's no form and no hoops, a plain email is enough. We'll acknowledge it
+        within 30 days and respond without undue delay.
+      </p>
+      <p>
+        We'd rather you came to us first so we can put things right, but you don't have to. You can
+        also complain to the UK's data protection regulator, the Information Commissioner's Office
+        (ICO), at <a href="https://ico.org.uk" rel="noopener">ico.org.uk</a> — and you can do that
+        whether or not you've raised it with us.
       </p>
 
       <h2>Work we don't take on</h2>
