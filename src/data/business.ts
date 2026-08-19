@@ -22,6 +22,8 @@ export const business = {
   legalName: 'Automancer Ltd',
   tradingName: 'Automancer',
   companyNumber: '17060907',
+  /** Part of the UK where the company is registered — a Companies Act trading disclosure. */
+  placeOfRegistration: 'England and Wales',
   /** ICO (Information Commissioner's Office) data-protection registration. */
   icoRegistration: 'ZC180569',
   url: 'https://automancer.uk',

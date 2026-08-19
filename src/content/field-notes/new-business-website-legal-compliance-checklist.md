@@ -37,10 +37,12 @@ both do the job, as long as a human can actually read it without a magnifying
 glass.
 
 It is tempting to file this under tidiness. It is not. Leaving it off is an
-offence in itself, and the sharper risk is that a company in breach can find
-itself unable to enforce its own contracts in court. You can lose the ability
-to chase your own unpaid invoice because of a missing footer. No incantation
-required to avoid that: four facts, in a footer, ten minutes.
+offence in itself, and the sharper risk sits in the contracts you make while
+in breach: the other side can ask the court to throw out your claim on one. A
+court can still let the case through where the defendant was not actually
+prejudiced, so it is a risk rather than a certainty, but it is a risk you are
+running on your own unpaid invoices for no reason at all. No incantation
+required to avoid it: four facts, in a footer, ten minutes.
 
 ## The requirement almost nobody has heard of: a real email address
 
