@@ -1,5 +1,23 @@
 import { defineConfig } from 'vitest/config';
 
+/**
+ * Worker cap: this repo does not own the machine.
+ *
+ * Vitest sizes its pool from `availableParallelism()` by default, which on a
+ * 20-core shared box means up to 19 workers from a single `pnpm test`. That is
+ * antisocial anywhere more than one thing runs at a time — a shared build box,
+ * a CI runner hosting several jobs, or a laptop doing anything else — and the
+ * cost scales with the number of test files, so it gets worse silently as the
+ * suite grows.
+ *
+ * Two is plenty here: the suite is I/O-light and the one-off production build
+ * in globalSetup dominates the runtime anyway. Raise it deliberately with
+ * VITEST_MAX_WORKERS=8 rather than by editing this file, so a machine that
+ * genuinely has the headroom can say so without the default changing for
+ * everyone else.
+ */
+const maxWorkers = Number(process.env.VITEST_MAX_WORKERS ?? 2);
+
 export default defineConfig({
   test: {
     // The suite is pure Node — no browser, no jsdom. Pages are parsed with
@@ -11,5 +29,11 @@ export default defineConfig({
     // The one-off production build can be slow on a cold CI runner.
     hookTimeout: 300_000,
     testTimeout: 30_000,
+    pool: 'forks',
+    poolOptions: {
+      forks: { minForks: 1, maxForks: maxWorkers },
+    },
+    maxWorkers,
+    minWorkers: 1,
   },
 });
