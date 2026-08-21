@@ -227,3 +227,33 @@ Also confirmed from a lane's own build analysis: `public/assets/css/styles.css` 
 unreferenced in `dist/` as well as in `src/` — genuinely dead, and safe for the
 cleanup slice to remove. The legacy redirect stub pages emit no `h1`, which is
 correct for a redirect page and is why the test suite excludes them explicitly.
+
+## A "should not", recorded with reasons
+
+I can deploy this repo freely: push to `main` is the deploy, it is verified
+working tonight, and rollback is a one-commit revert. So the question is not
+whether I *can* ship the agent-readiness branch, it is whether I *should* ship
+all of it unattended.
+
+**Decision: split it. Ship the additive surface; hold the JSON-LD replacement
+until it is checked by eye.**
+
+The branch contains two very different kinds of change:
+
+- **Additive and low-risk** — the JSON endpoints, RSS and JSON feeds, Markdown
+  twins, `llms-full.txt`, `.well-known/` files. Nothing existing depends on any
+  of it. If one is wrong, the blast radius is a URL nobody was fetching
+  yesterday, and the tests cover their shape.
+- **A replacement, and not low-risk** — the JSON-LD rewrite. Structured data is
+  already being consumed by search engines today. Getting it wrong does not throw
+  an error or turn CI red; it quietly degrades or removes rich results, takes
+  weeks to show up, and takes weeks more to recover. It is the one change on the
+  branch that can do lasting harm silently.
+
+So the additive work ships once green. The JSON-LD change gets compared against
+what the live pages currently emit before it goes anywhere near production — if
+it is not clearly at least as good, it waits for daylight and a human. Shipping
+it unattended at midnight buys nothing: no visitor is waiting for it, and the
+downside is slow and invisible.
+
+This is a judgement, not a blocker. The capability is there and verified.
