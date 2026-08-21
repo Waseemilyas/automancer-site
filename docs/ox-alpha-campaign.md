@@ -27,16 +27,21 @@ automancer.uk should score highly. Public website copy is not gated.
 | # | Slice | Status |
 |---|-------|--------|
 | 0 | Baseline tag + plan file | done |
-| 1 | Survey lane — honest architecture/risk/debt report | dispatched |
-| 2 | Safety net — test harness over the built output | pending |
-| 3 | Agent-readiness (is-agentic.com) — audit + implement | pending |
-| 4 | Further slices decided from the survey | pending |
+| 1 | Survey — honest architecture/risk/debt report | running (`survey2`) |
+| 2 | Safety net — vitest harness over the built output + CI | running (`testnet2`) |
+| 3 | Agent-readiness (is-agentic.com) — the flagship slice | briefed, queued |
+| 4 | Frontend / a11y / performance pass | briefed, queued |
+| 5 | Drift + dead-asset cleanup | briefed, queued |
+| 6 | Further slices decided from the survey | pending |
 
 ## Lanes
 
 | Lane | Brief | Outcome |
 |------|-------|---------|
-| `survey` | Read whole repo, report architecture, risks, worst code, missing tests, upgrade debt | running |
+| `survey` | Read whole repo, report architecture/risks/debt | **dead — landed nothing** (omp no-op) |
+| `testnet` | Build vitest harness from zero | **dead — landed nothing** (omp no-op) |
+| `survey2` | Same brief, absolute path, opencode path | running |
+| `testnet2` | Same brief, absolute path, opencode path | running |
 
 ## Decisions taken without Waseem
 
@@ -103,3 +108,31 @@ its work has been seen on disk.** An exit code and a plausible log prove nothing
 
 Both lanes re-dispatched on the working path as `survey2` and `testnet2`, this
 time with absolute repo paths. Both confirmed producing real output.
+
+## Partial-write audit (2026-08-21 ~22:25 UTC)
+
+The campaign lead corrected an earlier instruction: the dangerous failure mode is
+not a clean no-op but a **partial write** — early tool calls land, then the loop
+dies, leaving a plausible half-state that only fails on first use. Another repo
+had a lane whose entire visible output was "Working..." which had nonetheless
+edited `package.json`, written 270 lines of lockfile, and added a script pointing
+at a config file it never created.
+
+Audited this repo against the baseline tag for exactly that. **Clean.**
+
+- Only delta since baseline: three `docs/ox-alpha-campaign.md` commits.
+- `git status --porcelain` empty — no untracked files either.
+- `package.json` and `pnpm-lock.yaml` byte-identical to baseline.
+- Gitignored paths checked too, since git would never have shown them: there is
+  no `node_modules` directory at all, so the dead lane never reached
+  `pnpm install`. No `dist/`.
+- Filesystem sweep: the only file in the repo modified since 22:00 is the plan
+  file.
+- Reflog clean — no stray checkout or reset.
+
+Both dead lanes here died *before* their first write. Nothing to keep or revert,
+so the replacement lanes started from a genuinely clean tree.
+
+Incidental find, deferred to the cleanup slice: `.impeccable/` directories are
+gitignored but present, including one nested at
+`src/content/case-studies/.impeccable/`. Leftovers from an earlier design run.
