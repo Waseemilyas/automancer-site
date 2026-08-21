@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.21.2 — 21 August 2026
+
+Social sharing previews now stay reliable when the website’s images are regenerated.
+
+
 ## v2026.08.21.1 — 21 August 2026
 
 This release makes the website clearer to use, easier to discover, and more transparent about the business behind it.
