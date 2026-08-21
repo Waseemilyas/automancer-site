@@ -1,0 +1,69 @@
+# Test suite
+
+Vitest suite that audits the **production build output** (`dist/`) — the bytes
+GitHub Pages actually serves — not the source templates. If a refactor breaks
+a link, drops an alt attribute, skips a heading level, drifts `llms.txt` from
+`src/data/business.ts`, or lets a draft leak into the build, a test here fails.
+
+```sh
+pnpm install
+pnpm run test          # one-shot: builds, then audits dist/
+pnpm run test:watch    # watch mode (build runs once at startup)
+```
+
+`pnpm test` never needs a manual build first: `tests/global-setup.ts` runs
+`pnpm run build` exactly once per invocation before any test file loads.
+
+## How it is structured
+
+```
+vitest.config.ts            test config; registers the global setup
+tests/global-setup.ts       runs `pnpm run build` once, then hands over
+tests/support/dist.ts       walks + parses every emitted .html once per process;
+                            resolves URLs against dist/ (routeFor, resolveInDist)
+tests/support/content.ts    reads src/content/** frontmatter (draft flags)
+tests/pages.test.ts         per-page guarantees: h1, title/description length,
+                            canonical/og/twitter tags, lang, heading order,
+                            img alt policy, JSON-LD validity
+tests/links.test.ts         every internal href/src/srcset must resolve to a real
+                            emitted file; no localhost; automancer.uk always https;
+                            no TODO/FIXME/lorem ipsum in the build
+tests/a11y.test.ts          structural accessibility: landmarks, skip link,
+                            labelled form controls, named buttons/links
+tests/feeds.test.ts         sitemap exactness vs emitted pages, robots.txt,
+                            llms.txt byte-parity with src/data/business.ts
+                            (the anti-drift test), draft exclusion end to end
+```
+
+Page categories (see `tests/support/dist.ts`):
+
+- **content pages** — full layout, all guarantees apply (`contentPages()`);
+- **404** (`dist/404.html`) — full layout, included in page checks;
+- **redirect stubs** (`services.html/index.html` etc., from astro.config.mjs)
+  — bare meta-refresh pages for old inbound links; exempt from SEO/a11y
+  checks but their links are still verified by links.test.ts.
+
+## Why axe-core isn't used
+
+We tried. axe-core needs a real DOM environment (browser or jsdom) exposing
+`window`/`document`; this suite parses static HTML with node-html-parser and
+axe fails immediately against it. Rather than fake a pass, a11y.test.ts
+asserts the structure by hand. The trade-off is deliberate: fast, dependency-
+light tests that still catch missing labels, unnamed buttons, broken skip
+links and lost landmarks.
+
+## Adding a new assertion
+
+1. Ask which guarantee it protects and which file owns that topic — keep
+   page-metadata rules in `pages.test.ts`, references in `links.test.ts`,
+   machine-readable outputs in `feeds.test.ts`, accessibility in
+   `a11y.test.ts`.
+2. Use the shared loaders instead of touching the filesystem directly:
+   `contentPages()` / `allHtmlFiles()` give parsed pages; `resolveInDist()`
+   answers "does this URL exist in the build?"; `readDistFile()` reads any
+   emitted file.
+3. Make failures name the page and the reason (follow the existing
+   `` `${page.route}: …` `` message pattern) so a red CI run is actionable.
+4. Prove the assertion can fail: break the thing it guards in `src/`,
+   rebuild, watch the test go red, then restore. An assertion that has never
+   failed is not yet a test.

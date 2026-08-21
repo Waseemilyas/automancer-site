@@ -12,7 +12,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "check": "astro check"
+    "check": "astro check",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
@@ -21,6 +23,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "typescript": "^6.0.3"
+    "node-html-parser": "^9.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
   }
 }

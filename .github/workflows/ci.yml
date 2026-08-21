@@ -1,0 +1,48 @@
+name: CI
+
+# Build + typecheck + test on every PR and every push to main. The deploy
+# workflow (deploy.yml) is untouched and remains the only path to Pages.
+#
+# Estate CI rules applied: per-job timeout, concurrency group keyed on the
+# ref that cancels superseded runs, push filtered to the default branch so
+# branch pushes aren't billed twice alongside their pull_request run.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Reads the pinned version from package.json "packageManager".
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run check
+
+      # Builds dist/ once via vitest globalSetup, then audits it.
+      - name: Test production build
+        run: pnpm run test
