@@ -136,3 +136,44 @@ so the replacement lanes started from a genuinely clean tree.
 Incidental find, deferred to the cleanup slice: `.impeccable/` directories are
 gitignored but present, including one nested at
 `src/content/case-studies/.impeccable/`. Leftovers from an earlier design run.
+
+## Production verified from artifacts, and a correction to my own claim
+
+After shipping v2026.08.21.1 I checked the live site rather than the workflow's
+green tick. Both runs (CI and Deploy to GitHub Pages) succeeded, and production
+genuinely serves the changes: the footer headings are `h3`, the 404 page has an
+`h1`, the new upstream field note is live, and `/`, `/404.html`, `/field-notes/`,
+`/llms.txt` and `/sitemap-index.xml` all return 200. An unknown path correctly
+returns a real **404**, not a soft 200.
+
+**Correction.** Earlier I recorded, from reading `astro.config.mjs`, that the five
+legacy redirects "return 200, not 301". Checking what is actually served, that is
+not the whole truth:
+
+```
+/services.html      -> HTTP 301  (server: GitHub.com)
+/services.html/     -> HTTP 200  meta-refresh page
+                    -> /services
+```
+
+There *is* a 301, but it only adds the trailing slash. The hop that actually
+reaches the destination is a 200 page. So the defect is real but narrower than I
+stated, and the fix is smaller than I briefed.
+
+The emitted redirect page already contains everything I had briefed a lane to add:
+
+```html
+<meta http-equiv="refresh" content="0;url=/services">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://automancer.uk/services">
+<body><a href="/services">Redirecting from /services.html/ to /services</a></body>
+```
+
+Astro emits a canonical link, a noindex directive and a real anchor a no-JS agent
+can follow. Item 13 of the agent-readiness brief is therefore largely already
+satisfied, and the lane must not reimplement it.
+
+I also briefly misread `server: nginx` from the body of the 301 page and thought
+something sat in front of Pages. The actual `Server:` header says `GitHub.com`.
+The nginx string was page content, not a header — which is the same trap in
+miniature: read the artifact, and read the right part of it.
