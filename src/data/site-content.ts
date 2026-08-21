@@ -6,8 +6,9 @@
  * Drafts are always excluded here — the mirrors are production surfaces.
  */
 import { getCollection, type CollectionEntry } from 'astro:content';
-import { business } from './business';
+import { abs, pagePath } from './urls';
 
+export { abs };
 export type CaseStudy = CollectionEntry<'case-studies'>;
 export type FieldNote = CollectionEntry<'field-notes'>;
 
@@ -24,8 +25,6 @@ export async function getNotes(): Promise<FieldNote[]> {
   const all = await getCollection('field-notes');
   return all.filter((e) => !e.data.draft).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 }
-
-export const abs = (path: string) => new URL(path, business.url).toString();
 
 /** Stable id for a service: lowercased kebab-case of its name. */
 export function serviceId(name: string): string {
@@ -89,12 +88,20 @@ export function noteMarkdown(entry: FieldNote): string {
   );
 }
 
-/** Registry of every hand-authored page — used by /api/pages.json and llms-full.txt. */
+/** Registry of every hand-authored page — used by /api/pages.json, llms-full.txt and the .md twin decision. */
 export interface PageMeta {
   path: string;
   title: string;
   description: string;
   type: string;
+  /** "Last updated" date shown on the page, where one is published. */
+  lastUpdated?: string;
+  /**
+   * For legal/compliance pages: their body text is deliberately NOT mirrored
+   * anywhere machine-readable (transcription drifts silently — a real
+   * liability). We publish only these facts plus a link to the canonical HTML.
+   */
+  legalNoMirror?: true;
 }
 
 // Descriptions mirror the exact <meta name="description"> each page emits
@@ -106,6 +113,21 @@ export const staticPages: PageMeta[] = [
   { path: '/field-notes/', title: 'Field Notes', description: "Dispatches from an AI-run business. Written by the agents, decided by the human. Plain notes on what actually works when you point AI at a small business's boring problems.", type: 'CollectionPage' },
   { path: '/about/', title: 'About', description: "An AI-run consultancy with a human at the helm. Automancer's finance, project tracking and website run on agents — every decision and every call run by Waseem Ilyas, in Bradford.", type: 'AboutPage' },
   { path: '/contact/', title: 'Contact', description: "Tell us what's eating your week. No calendar gauntlet, no chatbot. Waseem reads it himself, and we promise a meeting within one week of first contact.", type: 'ContactPage' },
-  { path: '/privacy/', title: 'Privacy Policy', description: 'How Automancer Ltd handles your data — in plain English. What we collect, why, where it lives, who touches it, and the rights you have over it.', type: 'PrivacyPolicy' },
-  { path: '/terms/', title: 'Website Terms', description: 'Website terms of use for Automancer Ltd.', type: 'WebPage' },
+  {
+    path: '/privacy/',
+    title: 'Privacy Policy',
+    description: 'How Automancer Ltd handles your data — in plain English. What we collect, why, where it lives, who touches it, and the rights you have over it.',
+    type: 'PrivacyPolicy',
+    // Single source for the date shown on /privacy itself; imported there.
+    lastUpdated: '17 August 2026',
+    legalNoMirror: true,
+  },
+  { path: '/terms/', title: 'Website Terms', description: 'Website terms of use for Automancer Ltd.', type: 'WebPage', legalNoMirror: true },
 ];
+
+/** Markdown twin path for a static page, or null where none is emitted. */
+export function markdownTwinPath(path: string): string | null {
+  const meta = staticPages.find((p) => pagePath(p.path) === pagePath(path));
+  if (!meta || meta.legalNoMirror) return null;
+  return meta.path === '/' ? abs('/index.md') : abs(`${meta.path.replace(/\/$/, '')}.md`);
+}

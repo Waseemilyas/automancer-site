@@ -8,10 +8,23 @@
  *     support: no aggregateRating, no review, no invented sameAs, no
  *     priceValidUntil. Omit rather than guess.
  */
-import { business } from './business';
+import { business, services } from './business';
+import { pagePath } from './urls';
+import { serviceId } from './site-content';
 
 const ORG_ID = `${business.url}/#organization`;
 const SITE_ID = `${business.url}/#website`;
+
+/** The founder Person node — referenced by @id from org, articles, notes. */
+export function founderNode() {
+  return {
+    '@type': 'Person',
+    '@id': `${business.url}/about/#waseem-ilyas`,
+    name: 'Waseem Ilyas',
+    jobTitle: 'Founder and sole director',
+    url: `${business.url}/about/`,
+  };
+}
 
 /** The canonical ProfessionalService node, shared by every page's @graph. */
 export function organizationNode() {
@@ -46,11 +59,7 @@ export function organizationNode() {
     },
     // VAT number, social profiles etc. are not published anywhere verified,
     // so no sameAs / taxID here. Add only when a real profile exists.
-    founder: {
-      '@type': 'Person',
-      '@id': `${business.url}/about/#waseem-ilyas`,
-      name: 'Waseem Ilyas',
-    },
+    founder: { '@id': founderNode()['@id'] },
   };
 }
 
@@ -68,7 +77,7 @@ export function websiteNode() {
 }
 
 export function webPageNode(opts: { path: string; title: string; description: string; type?: string; datePublished?: string; dateModified?: string }) {
-  const url = new URL(opts.path, business.url).toString();
+  const url = new URL(pagePath(opts.path), business.url).toString();
   return {
     '@type': opts.type ?? 'WebPage',
     '@id': `${url}#webpage`,
@@ -83,6 +92,107 @@ export function webPageNode(opts: { path: string; title: string; description: st
   };
 }
 
+/** Service + OfferCatalog with a real Offer per published service. */
+export function serviceCatalogNode() {
+  return {
+    '@type': 'Service',
+    '@id': `${business.url}/services/#service`,
+    name: `${business.tradingName} — AI & workflow automation services`,
+    description:
+      'Automation audits, workflow implementation, custom AI systems and ongoing operations support for UK small businesses.',
+    provider: { '@id': ORG_ID },
+    areaServed: business.areasServed,
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      '@id': `${business.url}/services/#offer-catalog`,
+      name: 'Services and published from-prices (GBP)',
+      itemListElement: services.map((s) => ({
+        '@type': 'Offer',
+        '@id': `${business.url}/services/#offer-${serviceId(s.name)}`,
+        name: s.name,
+        description: s.description,
+        itemOffered: {
+          '@type': 'Service',
+          name: s.name,
+          description: s.description,
+          provider: { '@id': ORG_ID },
+        },
+        priceSpecification: {
+          // "From" prices as published on /services; monthly offering priced
+          // per month, project work priced per engagement.
+          ...(s.priceUnit === 'month'
+            ? {
+                '@type': 'UnitPriceSpecification',
+                price: s.priceFrom,
+                priceCurrency: 'GBP',
+                billingIncrement: 1,
+                unitCode: 'MON',
+              }
+            : {
+                '@type': 'PriceSpecification',
+                price: s.priceFrom,
+                priceCurrency: 'GBP',
+              }),
+        },
+      })),
+    },
+  };
+}
+
+/** ContactPoint node carried by /contact. */
+export function contactPointNode() {
+  return {
+    '@type': 'ContactPoint',
+    '@id': `${business.url}/contact/#contact-point`,
+    name: 'Contact Automancer',
+    contactType: 'customer support',
+    email: business.email,
+    telephone: business.phoneTel,
+    url: `${business.url}/contact/`,
+    availableLanguage: ['en-GB'],
+    areaServed: business.areasServed,
+  };
+}
+
+const wordCount = (body: string | undefined): number =>
+  (body ?? '').split(/\s+/).filter(Boolean).length;
+
+export interface ArticleNodeOpts {
+  path: string;
+  title: string;
+  description: string;
+  date: Date;
+  author: string;
+  body?: string;
+  articleSection?: string;
+  /** BlogPosting for dated editorial notes; Article for case studies. */
+  kind?: 'BlogPosting' | 'Article';
+}
+
+/** Article/BlogPosting node for field notes and case studies. */
+export function articleNode(opts: ArticleNodeOpts) {
+  const url = new URL(pagePath(opts.path), business.url).toString();
+  const authorName = opts.author || founderNode().name;
+  return {
+    '@type': opts.kind ?? 'BlogPosting',
+    '@id': `${url}#article`,
+    headline: opts.title,
+    description: opts.description,
+    url,
+    mainEntityOfPage: { '@id': `${url}#webpage` },
+    inLanguage: 'en-GB',
+    datePublished: opts.date.toISOString(),
+    wordCount: wordCount(opts.body),
+    image: `${business.url}/assets/images/og-image.png`,
+    author:
+      authorName === founderNode().name
+        ? { '@id': founderNode()['@id'] }
+        : { '@type': 'Person', name: authorName },
+    publisher: { '@id': ORG_ID },
+    ...(opts.articleSection ? { articleSection: [opts.articleSection] } : {}),
+  };
+}
+
 export interface Crumb {
   name: string;
   path: string;
@@ -91,12 +201,12 @@ export interface Crumb {
 export function breadcrumbNode(crumbs: Crumb[]) {
   return {
     '@type': 'BreadcrumbList',
-    '@id': `${new URL(crumbs[crumbs.length - 1].path, business.url).toString()}#breadcrumb`,
+    '@id': `${new URL(pagePath(crumbs[crumbs.length - 1].path), business.url).toString()}#breadcrumb`,
     itemListElement: crumbs.map((c, i) => ({
       '@type': 'ListItem',
       position: i + 1,
       name: c.name,
-      item: new URL(c.path, business.url).toString(),
+      item: new URL(pagePath(c.path), business.url).toString(),
     })),
   };
 }
@@ -106,10 +216,10 @@ export interface Faq {
   a: string;
 }
 
-export function faqNode(pagePath: string, faqs: Faq[]) {
+export function faqNode(pagePathArg: string, faqs: Faq[]) {
   return {
     '@type': 'FAQPage',
-    '@id': `${new URL(pagePath, business.url).toString()}#faq`,
+    '@id': `${new URL(pagePath(pagePathArg), business.url).toString()}#faq`,
     mainEntity: faqs.map((f) => ({
       '@type': 'Question',
       name: f.q,

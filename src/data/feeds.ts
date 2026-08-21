@@ -1,8 +1,9 @@
 /**
  * Feed generators shared by /work and /field-notes.
- * RSS 2.0 (full content in CDATA) and JSON Feed 1.1.
+ * RSS 2.0 (full content) and JSON Feed 1.1.
  */
 import { business } from './business';
+import { getStudies, getNotes } from './site-content';
 
 export interface FeedItem {
   slug: string;
@@ -10,8 +11,40 @@ export interface FeedItem {
   title: string;
   description: string;
   date: Date;
-  /** Full content — raw Markdown. */
+  /** Full content — raw Markdown, never an excerpt. */
   body: string;
+}
+
+/** Feed items for the case-study collection (/work), index order. */
+export async function studyFeedItems(): Promise<FeedItem[]> {
+  const studies = await getStudies();
+  return studies.map((e) => {
+    const parts: string[] = [];
+    if (e.data.subhead) parts.push(e.data.subhead, '');
+    if (e.data.stats.length > 0) parts.push(...e.data.stats.map((s) => `- **${s.v}** — ${s.l}`), '');
+    parts.push(e.body ?? '');
+    return {
+      slug: e.id,
+      path: `/work/${e.id}`,
+      title: e.data.headline ?? e.data.title,
+      description: e.data.description,
+      date: e.data.date,
+      body: parts.join('\n').trim() + '\n',
+    };
+  });
+}
+
+/** Feed items for the field-notes collection, newest first. */
+export async function noteFeedItems(): Promise<FeedItem[]> {
+  const notes = await getNotes();
+  return notes.map((e) => ({
+    slug: e.id,
+    path: `/field-notes/${e.id}`,
+    title: e.data.title,
+    description: e.data.description,
+    date: e.data.date,
+    body: (e.body ?? '').trim() + '\n',
+  }));
 }
 
 const esc = (s: string) =>

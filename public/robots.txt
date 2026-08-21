@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://automancer.uk/sitemap-index.xml

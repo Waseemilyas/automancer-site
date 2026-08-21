@@ -1,6 +1,7 @@
 // Every page this site emits — static pages plus content-collection pages.
 import type { APIRoute } from 'astro';
-import { staticPages, getStudies, getNotes, abs } from '../../data/site-content';
+import { staticPages, getStudies, getNotes, markdownTwinPath } from '../../data/site-content';
+import { abs } from '../../data/urls';
 import { build } from '../../data/build';
 
 export const GET: APIRoute = async () => {
@@ -11,15 +12,11 @@ export const GET: APIRoute = async () => {
       url: abs(p.path),
       title: p.title,
       description: p.description,
-      // Markdown twins exist for the main content pages (legal pages are
-      // HTML-only); null where no twin is emitted.
-      markdownUrl: ['/', '/about/', '/services/', '/work/', '/field-notes/', '/contact/'].includes(p.path)
-        ? p.path === '/'
-          ? abs('/index.md')
-          : abs(`${p.path.replace(/\/$/, '')}.md`)
-        : null,
+      // Legal/compliance pages deliberately have no Markdown twin; null
+      // where no twin is emitted.
+      markdownUrl: markdownTwinPath(p.path),
       type: p.type,
-      lastModified: build.time.toISOString(),
+      lastModified: p.lastUpdated ?? build.time.toISOString(),
     })),
     ...studies.map((e) => ({
       url: abs(`/work/${e.id}`),
