@@ -55,7 +55,10 @@ export function studyMarkdown(entry: CaseStudy): string {
   const url = abs(`/work/${entry.id}`);
   const parts = [
     frontMatter({
-      title: d.headline ?? d.title,
+      // The page <title> derives from fitTitle(d.title) — the twin's
+      // front-matter title must be that same string (unfitted), not the
+      // display headline, or the twin and its page disagree.
+      title: d.title,
       description: d.description,
       url,
       canonical: url,
@@ -63,6 +66,9 @@ export function studyMarkdown(entry: CaseStudy): string {
       datePublished: iso(d.date),
     }),
   ];
+  // Mirror the rendered page: the h1 shows the editorial headline
+  // (`d.headline ?? d.title`), so it stays in the twin as the top heading.
+  parts.push(`# ${d.headline ?? d.title}`, '');
   if (d.subhead) parts.push(d.subhead, '');
   if (d.stats.length > 0) {
     parts.push(...d.stats.map((s) => `- **${s.v}** — ${s.l}`), '');
@@ -109,9 +115,9 @@ export interface PageMeta {
 export const staticPages: PageMeta[] = [
   { path: '/', title: 'AI & automation for UK small businesses', description: "We make small businesses run like magic. It's not magic. It's very good engineering. AI and workflow automation from Automancer — audits from £450.", type: 'WebPage' },
   { path: '/services/', title: 'Services & pricing', description: 'Four ways to work with us, with real from-prices. Audit from £450, Workflow Sprint from £1,950, System Build from £4,500, AI Ops Partner from £495/mo.', type: 'CollectionPage' },
-  { path: '/work/', title: 'Work', description: 'Real systems, live in production. Case studies from a care provider, a manufacturer, a diversity & inclusion consultancy and small firms — every fact taken from the actual work.', type: 'CollectionPage' },
-  { path: '/field-notes/', title: 'Field Notes', description: "Dispatches from an AI-run business. Written by the agents, decided by the human. Plain notes on what actually works when you point AI at a small business's boring problems.", type: 'CollectionPage' },
-  { path: '/about/', title: 'About', description: "An AI-run consultancy with a human at the helm. Automancer's finance, project tracking and website run on agents — every decision and every call run by Waseem Ilyas, in Bradford.", type: 'AboutPage' },
+  { path: '/work/', title: 'Work', description: 'Real systems, live in production. Case studies from a care provider, a manufacturer, a diversity & inclusion consultancy and small firms — all real work.', type: 'CollectionPage' },
+  { path: '/field-notes/', title: 'Field Notes', description: "Dispatches from an AI-run business. Written by the agents, decided by the human. Plain notes on what actually works when you point AI at boring problems.", type: 'CollectionPage' },
+  { path: '/about/', title: 'About', description: "An AI-run consultancy with a human at the helm. Automancer's finance, project tracking and website run on agents — every decision taken by Waseem, in Bradford.", type: 'AboutPage' },
   { path: '/contact/', title: 'Contact', description: "Tell us what's eating your week. No calendar gauntlet, no chatbot. Waseem reads it himself, and we promise a meeting within one week of first contact.", type: 'ContactPage' },
   {
     path: '/privacy/',
@@ -122,7 +128,7 @@ export const staticPages: PageMeta[] = [
     lastUpdated: '17 August 2026',
     legalNoMirror: true,
   },
-  { path: '/terms/', title: 'Website Terms', description: 'Website terms of use for Automancer Ltd.', type: 'WebPage', legalNoMirror: true },
+  { path: '/terms/', title: 'Website Terms', description: 'Website terms of use for Automancer Ltd — how you may use this site, our liability position, and the intellectual property in it.', type: 'WebPage', legalNoMirror: true },
 ];
 
 /** Markdown twin path for a static page, or null where none is emitted. */

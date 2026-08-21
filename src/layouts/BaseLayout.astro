@@ -3,7 +3,7 @@ import SEO from '../components/SEO.astro';
 import JsonLd from '../components/JsonLd.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import { organizationNode, websiteNode, webPageNode } from '../data/jsonld';
+import { founderNode, organizationNode, websiteNode, webPageNode } from '../data/jsonld';
 import '../styles/global.css';
 
 export interface Props {
@@ -43,12 +43,15 @@ const { title, description, image, ogType = 'website', schema = [], pageType } =
     <link rel="stylesheet" href="/assets/css/fonts.css" />
 
     <!-- One JSON-LD @graph per page: Organization + WebSite + this page,
-         plus any page-specific nodes passed via the `schema` prop. -->
+          plus the founder Person node (referenced by @id from the
+          organization and article nodes, so it must be described here),
+          plus any page-specific nodes passed via the `schema` prop. -->
     <JsonLd
       nodes={[
         organizationNode(),
         websiteNode(),
         webPageNode({ path: Astro.url.pathname, title, description, type: pageType }),
+        founderNode(),
         ...schema,
       ]}
     />
