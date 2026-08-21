@@ -29,11 +29,8 @@ export default defineConfig({
     // The one-off production build can be slow on a cold CI runner.
     hookTimeout: 300_000,
     testTimeout: 30_000,
-    pool: 'forks',
-    poolOptions: {
-      forks: { minForks: 1, maxForks: maxWorkers },
-    },
+    // Vitest 4 removed `poolOptions` and `minWorkers`; `maxWorkers` is the
+    // supported knob and caps the pool on its own.
     maxWorkers,
-    minWorkers: 1,
   },
 });
