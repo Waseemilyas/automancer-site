@@ -2,14 +2,14 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import JsonLd from '../../components/JsonLd.astro';
 import { getCollection, render } from 'astro:content';
+import { fitDescription, fitTitle } from '../../lib/meta';
 
 export async function getStaticPaths() {
   const isProd = import.meta.env.PROD;
   // Drafts never build into the production site (no unlinked placeholder
   // pages ship); they remain reachable in dev for review.
-  const posts = (await getCollection('field-notes')).filter(
-    (e) => !(isProd && e.data.draft)
-  );
+  const posts = (await getCollection('field-notes'))
+    .filter((e) => !(isProd && e.data.draft));
   return posts.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
 }
 
@@ -22,7 +22,9 @@ const fmt = (dt: Date) =>
   dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 ---
 
-<BaseLayout title={d.title} description={d.description} ogType="article">
+{/* SERP metadata is length-fitted (see src/lib/meta.ts); the visible
+     article title below keeps the frontmatter copy verbatim. */}
+<BaseLayout title={fitTitle(d.title)} description={fitDescription(d.description)} ogType="article">
   <Fragment slot="head">
     <JsonLd
       type="Article"

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection, render } from 'astro:content';
+import { fitDescription, fitTitle } from '../../lib/meta';
 
 export async function getStaticPaths() {
   const isProd = import.meta.env.PROD;
@@ -20,7 +21,9 @@ const { Content } = await render(entry);
 const d = entry.data;
 ---
 
-<BaseLayout title={d.title} description={d.description}>
+{/* SERP metadata is length-fitted (see src/lib/meta.ts); the visible
+     headline below keeps the frontmatter copy verbatim. */}
+<BaseLayout title={fitTitle(d.title)} description={fitDescription(d.description)}>
   <!-- Designed hero -->
   <article>
     <header class="page-hero hatch">

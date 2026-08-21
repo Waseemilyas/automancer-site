@@ -600,7 +600,7 @@ strong { font-weight: 600; color: inherit; }
 .offer__one { font-size: var(--t-1); margin-top: var(--sp-5); max-width: 42ch; }
 .offer__who { color: var(--muted-dark); margin-top: var(--sp-4); max-width: 46ch; }
 .on-dark .offer__who, .on-near .offer__who { color: var(--muted); }
-.offer__includes h4 { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
+.offer__includes h3 { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--faint); margin-bottom: var(--sp-5); }
 .ticks { display: flex; flex-direction: column; gap: var(--sp-4); }
 .ticks li { position: relative; padding-left: 1.8rem; line-height: 1.55; }
@@ -882,7 +882,7 @@ strong { font-weight: 600; color: inherit; }
 .footer__word { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; letter-spacing: -0.03em; }
 .footer__addr { color: var(--muted); font-size: var(--t--1); line-height: 1.8; max-width: 32ch; }
 .footer__addr a:hover { color: var(--white); }
-.footer__col h4 { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
+.footer__col h3 { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--faint); margin-bottom: var(--sp-5); }
 .footer__col nav { display: flex; flex-direction: column; gap: var(--sp-3); }
 .footer__col a { color: var(--g-300); font-size: var(--t-0); transition: color var(--dur-1); }
