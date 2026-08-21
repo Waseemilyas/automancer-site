@@ -1,7 +1,7 @@
 ---
 title: From zero to live, in days, for near-zero running cost
-description: Fast, affordable, compliant landing sites for small businesses that needed a proper web presence yesterday — with no monthly platform fees.
-summary: Fast, affordable, compliant landing sites for small businesses that needed a proper web presence yesterday — with no monthly platform fees. The light end of what we do.
+description: Fast, affordable, properly-built landing sites for small businesses that needed a proper web presence yesterday — with no monthly platform fees.
+summary: Fast, affordable, properly-built landing sites for small businesses that needed a proper web presence yesterday — with no monthly platform fees. The light end of what we do.
 statline: "live in days · no monthly platform fees · SEO + compliance built in"
 date: 2026-03-10
 sector: Small business / web
@@ -14,17 +14,17 @@ subhead: Not every job needs an eighteen-workstream transformation. Sometimes a 
 stats:
   - { v: "Live in days", l: "not months" }
   - { v: "Near-zero", l: "running cost — no monthly platform fees" }
-  - { v: "Compliant", l: "trading disclosures done right, out of the box" }
+  - { v: "Thorough", l: "trading disclosures done right, out of the box" }
   - { v: "Findable", l: "SEO basics and structured data in place" }
 ---
 
 ## New business, no web presence, no budget for a big agency
 
-A brand-new company can't sell what nobody can find. But the traditional options are grim: a web agency with a five-figure quote and a three-month timeline, or a drag-and-drop builder that charges you rent forever and still looks like everyone else's. Small businesses — a new travel agency, a local credit-hire firm — need a middle path: a real, credible, compliant site, live fast, without a monthly bill hanging over it.
+A brand-new company can't sell what nobody can find. But the traditional options are grim: a web agency with a five-figure quote and a three-month timeline, or a drag-and-drop builder that charges you rent forever and still looks like everyone else's. Small businesses — a new travel agency, a local credit-hire firm — need a middle path: a real, credible, properly-built site, live fast, without a monthly bill hanging over it.
 
 ## Two businesses, from nothing to live
 
-**A new UK travel agency.** We took the client from zero web presence to a live, legally compliant marketing site: services sections, a tested working enquiry form, WhatsApp and phone contact wiring, and the required Companies Act trading-disclosure footer. We handled the lot end to end — domain purchase, DNS, HTTPS hosting, and interim email routing — so they had a working front door and a working inbox from day one.
+**A new UK travel agency.** We took the client from zero web presence to a live marketing site: services sections, a tested working enquiry form, WhatsApp and phone contact wiring, and the trading-disclosure footer. We handled the lot end to end — domain purchase, DNS, HTTPS hosting, and interim email routing — so they had a working front door and a working inbox from day one.
 
 **A local credit-hire firm.** A sharp single-page marketing site with the technical fundamentals baked in: structured data so search engines understand the business, plus the SEO basics — sitemap, robots and the rest — done properly. Live, fast, and findable.
 
@@ -32,10 +32,10 @@ Both are hand-built and hosted for essentially nothing to run — no monthly pla
 
 ## Fast, cheap, and still done right
 
-Cheap and fast usually means cut corners. Not here. These sites are hand-built (so there's no bloated platform tax), compliant (the legal footers and disclosures that new businesses forget), and technically sound (structured data and SEO basics that a template rarely gets right). It's the same standard we bring to a six-figure system — just scaled to what the job actually needs.
+Cheap and fast usually means cut corners. Not here. These sites are hand-built (so there's no bloated platform tax), thorough (the footer disclosures new businesses forget), and technically sound (structured data and SEO basics that a template rarely gets right). It's the same standard we bring to a six-figure system — just scaled to what the job actually needs.
 
-## Online, compliant, and cheap to keep
+## Online, done properly, and cheap to keep
 
 - Both businesses went from **no web presence to live sites.**
 - **Near-zero running cost** — no monthly platform fees.
-- Legally compliant trading disclosures and SEO fundamentals in place from launch.
+- Trading disclosures and SEO fundamentals in place from launch.
