@@ -45,3 +45,37 @@ automancer.uk should score highly. Public website copy is not gated.
 ## Findings
 
 - (filled in as lanes land)
+
+## What is-agentic.com actually measures (researched 2026-08-21)
+
+Scoring is three pools:
+
+- **Essential — 80 points.** Server-rendered content available without running
+  JavaScript; correct HTTP behaviour and status codes; clear document structure;
+  error recovery; usable interactive controls.
+- **Recommended — 20 points, conditional.** Only activates where the site shows
+  evidence it offers that capability: API endpoints, OAuth, GraphQL, an MCP
+  server, a developer portal, e-commerce. Checks that do not apply are excluded
+  rather than failed, so a brochure site is not punished for lacking a checkout.
+- **Bonus — capped at 5 points.** Emerging formats (llms.txt and similar). Bonus
+  can only add, never subtract.
+
+There is also a non-scoring "observed agent journey" — a real agent is driven
+around the site and its path is reported as evidence.
+
+**What that means for us.** Being a static Astro site already wins most of the
+Essential pool: everything is server-rendered and there is no JS gate. The two
+real Essential exposures are (a) HTTP status correctness — our legacy redirects
+in `astro.config.mjs` are emitted as meta-refresh pages, which return **200, not
+301**, and (b) error recovery and interactive controls, which nobody has audited.
+The Recommended pool is the interesting one: it is conditional, so the way to
+earn it is to genuinely *offer* machine-readable capabilities and advertise them.
+
+## Throttle (campaign lead, 2026-08-21 ~22:15 UTC)
+
+Box overloaded — load 61 on 20 cores, swap exhausted. Adopted immediately:
+max **2** concurrent lanes, never a build or full test run while two lanes are
+up, PID-targeted kills only, and temp-file-then-`mv` for any shared file.
+
+Also noted: pass `oxlane` an **absolute** repo path. Passing `.` names the log
+file `.-<lane>-<stamp>.log`, which is hidden and easy to miss when verifying.
