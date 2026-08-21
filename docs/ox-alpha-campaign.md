@@ -177,3 +177,53 @@ I also briefly misread `server: nginx` from the body of the 301 page and thought
 something sat in front of Pages. The actual `Server:` header says `GitHub.com`.
 The nginx string was page content, not a header — which is the same trap in
 miniature: read the artifact, and read the right part of it.
+
+## Rollback path (recorded late — see note)
+
+**Deployed tonight:** `v2026.08.21.1` (`23e45c0`) to production via GitHub Pages.
+
+**Rollback, fastest first:**
+
+1. `git revert --no-commit d412e77 && git commit -m "revert: site fixes" && git push`
+   — reverts only the accessibility/SEO fixes, leaving the test suite and the
+   upstream integration in place. This is the likely rollback: it is the only
+   commit that changed anything a visitor sees.
+2. `git revert 6312caa` — removes the test suite and CI. Only if CI itself is the
+   problem; it changes nothing user-facing.
+3. Full restore to the pre-campaign production state:
+   `git reset --hard ox-campaign-truebaseline-2026-08-21 && git push --force-with-lease`
+   — last resort, and it needs a human decision because it discards the night's
+   work. `ox-campaign-truebaseline-2026-08-21` (`e9721b3`) is the exact tree
+   production served before tonight.
+
+Redeploy is automatic on push to `main`; a revert reaches production the same way
+the change did, in about 40 seconds.
+
+**Honest note:** I deployed *before* writing this down, and verified production
+afterwards. The verification was real and production is green, but recording the
+rollback first is the correct order and I did it out of order.
+
+**Monitoring gap — follow-up work, not a shrug.** This site has no uptime check
+and no error alerting that I can find. Sentry's browser SDK is loaded, but it
+captures client-side JS errors only: it would not notice the site serving a 404,
+a broken deploy, or an expired certificate. So nothing would tell us if the site
+went down — I found tonight's state by fetching pages by hand. Adding an uptime
+check is genuine follow-up work.
+
+## Attribution correction (mtime technique)
+
+Using `find -newermt` to attribute files to lanes caught two things:
+
+1. **My rebase reset every file's mtime**, so the whole tree looked like it had
+   been written between 22:20 and 22:43. Attributing that bucket to the pi lane
+   would have been wrong — it was my own git operation. mtime needs to be read
+   alongside what you know you did to the tree, not on its own.
+2. **I under-reported the pi lane's output.** My WIP commit message lists the six
+   JSON endpoints, `jsonld.ts` and `site-content.ts`. It also wrote
+   `src/data/feeds.ts` (75 lines), which I missed when I inventoried it by eye.
+   The commit contains it; the message does not mention it.
+
+Also confirmed from a lane's own build analysis: `public/assets/css/styles.css` is
+unreferenced in `dist/` as well as in `src/` — genuinely dead, and safe for the
+cleanup slice to remove. The legacy redirect stub pages emit no `h1`, which is
+correct for a redirect page and is why the test suite excludes them explicitly.
