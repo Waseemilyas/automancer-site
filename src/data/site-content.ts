@@ -33,7 +33,7 @@ export function serviceId(name: string): string {
 
 const iso = (d: Date) => d.toISOString();
 
-function frontMatter(fields: Record<string, string | undefined>): string {
+export function frontMatter(fields: Record<string, string | undefined>): string {
   const lines = ['---'];
   for (const [k, v] of Object.entries(fields)) {
     if (v !== undefined) lines.push(`${k}: ${JSON.stringify(v)}`);

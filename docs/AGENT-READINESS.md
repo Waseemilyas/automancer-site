@@ -1,0 +1,110 @@
+# Agent-readiness — automancer.uk against is-agentic.com
+
+Status: **implemented on `feat/agent-readiness`**, verified by a clean production build.
+Last reviewed: 21 August 2026.
+
+## How is-agentic.com scores
+
+- **80 points — Essential pool**, applied to every site: server-rendered
+  content, correct HTTP status codes, clear document structure, error
+  recovery, usable interactive controls.
+- **20 points — Conditional Recommended pool**, which only activates where a
+  site genuinely offers machine-readable capability.
+- **5 points — additive bonus** for emerging formats.
+
+The Conditional pool is earned, not assumed: it activates because this site
+actually ships JSON endpoints, feeds and Markdown twins — not because we
+declared them.
+
+## Essential pool (80 points)
+
+| Check | Status | Implemented in | Notes |
+| --- | --- | --- | --- |
+| Server-rendered content | Done | `astro build` static output (`output: 'static'`) in `astro.config.mjs` | Every page is complete HTML at deploy time. No client-side rendering of content anywhere; the only runtime JS is the contact form, UTM capture, Sentry and small visual effects. |
+| Every content URL serves real HTML | Done | `src/pages/**` | 22 pages built: home, services, work index + 4 case studies, field-notes index + 9 articles, about, contact, privacy, terms, 404, plus legacy `.html` meta-refresh pages. |
+| Correct HTTP status codes | Done / verified live | `astro.config.mjs` redirects | GitHub Pages serves `200` for every emitted page and a real `404` via `dist/404.html`. Legacy `/services.html` etc. return a real `301`, then a `200` meta-refresh page that Astro emits with a canonical link, `robots noindex`, and a real anchor a no-JS agent can follow. **Verified against live production on 2026-08-21; deliberately left untouched.** |
+| Canonical URLs | Done | `src/components/SEO.astro` | `<link rel="canonical">` on every page, absolute URLs normalised through `src/data/urls.ts` so HTML, JSON-LD, APIs, twins and feeds cannot disagree. |
+| Clear document structure | Done | `src/layouts/BaseLayout.astro`, `src/styles/global.css` | One `<h1>` per page, ordered heading hierarchy, semantic `<article>`/`<section>`, skip-link, `lang="en-GB"`, descriptive link text. |
+| Structured data | Done | `src/components/JsonLd.astro` + `src/data/jsonld.ts` | One schema.org JSON-LD `@graph` per page: Organization + WebSite + WebPage subtype, Article nodes on field notes; all `@id`s absolute. |
+| Error recovery (404) | Done | `src/pages/404.astro` | States plainly what happened, links every top-level section with descriptions, lists recent field notes and every case study, gives email/phone/form contact routes. Static, fully server-rendered. |
+| Usable interactive controls without JS | Partial (honest gap) | `src/pages/contact.astro`, `/.well-known/agent.json` | All navigation works without JS. The contact form requires JavaScript plus a Cloudflare Turnstile check — there is no pure-HTML fallback form. Mitigation: the 404 page, footer, `agent.json`, `llms.txt` and `contact.md` all surface direct `mailto:` and phone routes, and `agent.json` tells agents to prefer email. Residual gap accepted: a no-JS agent can always reach a human by mailto. |
+| Sitemap | Done | `@astrojs/sitemap` | `sitemap-index.xml` + page sitemaps generated at build; drafts never enter it. |
+
+## Conditional Recommended pool (20 points) — machine-readable capability
+
+Activated because the site genuinely offers these surfaces. All are generated
+at build time from shared data modules (`src/data/business.ts`,
+`site-content.ts`, `feeds.ts`, `urls.ts`, `build.ts`) so they cannot drift
+from each other or from the HTML pages.
+
+| Check | Status | File(s) | Notes |
+| --- | --- | --- | --- |
+| `llms.txt` | Done | `src/pages/llms.txt.ts` | Business summary, pricing, contact, sitemap, and a "machine-readable surfaces" section advertising everything below. |
+| Full-text file | Done | `src/pages/llms-full.txt.ts` | Whole site's text in one file; every section headed with its canonical URL; legal pages listed as metadata + pointer only. |
+| JSON API | Done | `src/pages/api/*.json.ts` | Six endpoints: `index.json` (discovery), `business.json`, `services.json`, `case-studies.json`, `field-notes.json` (full body text), `pages.json` (inventory incl. twin URLs + last-modified). |
+| Feeds | Done | `src/data/feeds.ts`, `src/pages/{work,field-notes}/{rss.xml,feed.json}.ts` | RSS 2.0 with full `content:encoded`, and JSON Feed 1.1 with full `content_text` — not excerpts. |
+| `.well-known/agent.json` | Done | `src/data/wellknown-agent.ts`, injected as a route in `astro.config.mjs` | Capability manifest: contact routes (with JS caveats stated), every endpoint, policy, permissions, legal-page stance. |
+| `.well-known/security.txt` | Done | `src/data/wellknown-security.ts`, injected as a route in `astro.config.mjs` | RFC 9116 valid: `Contact`, `Expires` (generated at build, ~1 year out — can never silently expire), `Preferred-Languages`, `Canonical`. |
+| robots.txt welcoming AI crawlers | Done | `src/pages/robots.txt.ts` | Generated. No Disallow rules for content; major AI crawlers explicitly Allowed; machine-readable surfaces advertised in comments; sitemap declared. |
+
+### Markdown twins convention
+
+Every content page is also available at its own path plus `.md`, served as
+`text/markdown; charset=utf-8`, with YAML front matter carrying title,
+description, url, canonical, type, and dates where known.
+
+| Page kind | Twin source | Files |
+| --- | --- | --- |
+| Case studies (`/work/<slug>.md`) | Derived directly from the collection entry (`studyMarkdown`) — never retyped | `src/pages/work/[slug].md.ts`, `src/data/site-content.ts` |
+| Field notes (`/field-notes/<slug>.md`) | Derived directly from the collection entry (`noteMarkdown`) — never retyped | `src/pages/field-notes/[slug].md.ts`, `src/data/site-content.ts` |
+| Collection indexes (`/work.md`, `/field-notes.md`) | Listings derived from the collections | `src/data/static-markdown.ts` |
+| Hand-authored pages (`/index.md`, `/services.md`, `/about.md`, `/contact.md`) | Curated renditions assembled in `static-markdown.ts`; facts (prices, names, contact details) come from `src/data/business.ts`, not retyping | `src/pages/*.md.ts` |
+
+Known limitation, stated honestly: the hand-authored twins are renditions, not
+scrapes of the rendered HTML. If an `.astro` page's prose changes without the
+twin generator being touched, the twin can lag until updated. Prices, service
+names, contact details and promises are immune (single-sourced from
+`business.ts`). Collection twins cannot lag at all.
+
+### Legal pages — deliberate non-mirroring (hard rule)
+
+The bodies of `/privacy/` and `/terms/` are **never transcribed** into any
+Markdown twin, JSON endpoint, feed or `llms-full.txt`. Those are compliance
+pages that changed upstream recently; a transcribed copy would drift silently
+and could republish a superseded privacy notice — a real liability.
+
+Choice made: emit **metadata only** — title, description, canonical URL,
+last-updated date (privacy), plus an explicit pointer to fetch the canonical
+HTML for the authoritative text. This choice is stated in `llms.txt`,
+`llms-full.txt`, `/.well-known/agent.json` (`legalPagesPolicy`) and here.
+Enforced in code by `legalNoMirror` in `src/data/site-content.ts`
+(`markdownTwinPath()` returns `null` for those pages).
+
+## Emerging-formats bonus (5 points)
+
+| Check | Status | Notes |
+| --- | --- | --- |
+| `llms.txt` / `llms-full.txt` | Done | See above. |
+| `.well-known/agent.json` capability manifest | Done | Ahead of most sites; schemaVersion'd, additive-change policy stated. |
+| Content negotiation-style twins (`.md`) | Done | Path-convention twins rather than Accept-header negotiation — deliberate, because the site is static files on GitHub Pages and cannot vary responses by header. |
+| JSON Feed alongside RSS | Done | Both formats per collection. |
+
+## Build & provenance
+
+- `pnpm run build` must be clean before deploy; all surfaces above are
+  prerendered static files in `dist/`.
+- `src/data/build.ts` records the real build timestamp and git SHA;
+  `agent.json`, `llms-full.txt` and the footer carry genuine values only.
+- Draft collection entries never reach production pages, sitemap, APIs,
+  feeds or twins (same filter everywhere, via `site-content.ts`).
+
+## Residual gaps (summary)
+
+1. Contact form needs JavaScript + Turnstile; mitigated with mailto/phone
+   everywhere an agent looks, and stated in `agent.json`.
+2. Hand-authored page twins are curated renditions (see limitation above);
+   collection twins and all facts are single-sourced.
+3. Legal page bodies are intentionally available only as canonical HTML.
+4. Legacy `.html` URLs resolve via Astro's meta-refresh pages rather than raw
+   server redirects after the first hop — correct and verified live in
+   production (canonical + noindex + followable anchor present); untouched.

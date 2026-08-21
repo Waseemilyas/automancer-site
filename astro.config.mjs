@@ -9,6 +9,7 @@ import sitemap from '@astrojs/sitemap';
  * injected explicitly. The handlers live in src/data/ next to the modules
  * they are generated from (business facts, build provenance).
  */
+/** @type {import('astro').AstroIntegration} */
 const wellKnownRoutes = {
   name: 'well-known-routes',
   hooks: {
