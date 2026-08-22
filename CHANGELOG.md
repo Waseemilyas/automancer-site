@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.22.4 — 22 August 2026
+
+The website’s public information for automated services and security enquiries is now available at reliable addresses.
+
+
 ## v2026.08.22.3 — 22 August 2026
 
 This release improves confidence that the public website remains available and secure after updates and between visits.
