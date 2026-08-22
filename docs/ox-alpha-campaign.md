@@ -276,3 +276,32 @@ the mechanism rather than of anyone's discipline:
   reach production, even mid-write.
 - Nothing on this box executes from the working tree — no systemd unit, no cron,
   no watcher references this repo. Checked, not assumed.
+
+### What path does this repo's code take to reach something that runs it?
+
+One path, and only one:
+
+```
+commit -> push to main -> GitHub Actions -> actions/checkout of that SHA
+       -> astro build (on GitHub) -> upload-pages-artifact -> deploy-pages
+       -> automancer.uk, ~40s later
+```
+
+Nothing else runs this code. Verified, not assumed: no systemd unit, timer,
+cron entry or user unit references this path, and nothing in the shared
+`ops/scripts` or `auto/scripts` trees shells out to it.
+
+Two consequences follow from the mechanism rather than from anyone's care:
+
+- **The working tree is never production.** The build runs on GitHub from a
+  committed SHA, on a machine that has never seen this checkout. A lane
+  mid-write cannot reach users, so "a lane is editing a file" is not
+  "I am deploying" here.
+- **But merging IS deploying**, because production tracks `main` within about
+  40 seconds. Full deploy conditions apply to every merge.
+
+The one thing that *does* reach the outside world as a side effect is
+`release-notes.mjs`, which can push to the client portal — but only for repos
+registered under a client `repoRoots`. This repo is not, confirmed from the
+gate condition and from the run output, so cutting a release here publishes a
+GitHub release and nothing further.
