@@ -28,6 +28,10 @@ tests/global-setup.ts       runs `pnpm run build` once, then hands over
 tests/support/dist.ts       walks + parses every emitted .html once per process;
                             resolves URLs against dist/ (routeFor, resolveInDist)
 tests/support/content.ts    reads src/content/** frontmatter (draft flags)
+tests/support/perf.ts       page-weight engine: real bytes per page off dist/
+                            (html/css/js/fonts/images columns; missing refs)
+tests/support/perf-cli.ts   CLI for the engine: markdown/--csv tables used to
+                            derive and re-derive budgets (`node tests/support/perf-cli.ts`)
 tests/pages.test.ts         per-page guarantees: h1, title/description length,
                             canonical/og/twitter tags, lang, heading order,
                             img alt policy, JSON-LD validity
@@ -50,6 +54,9 @@ tests/developer-surface.test.ts  the post-scan surface (2026-08-22): OpenAPI 3.1
 tests/assets.test.ts        rot-guard: every file in public/assets/images must
                             be referenced somewhere in dist/ (this directory
                             collected dead og-image/logo variants before)
+tests/performance.test.ts   byte budgets per page against the fresh build
+                            (total/js/fonts), derived from measured values —
+                            method and tables live in docs/PERFORMANCE.md
 ```
 
 Page categories (see `tests/support/dist.ts`):
@@ -74,7 +81,7 @@ links and lost landmarks.
 1. Ask which guarantee it protects and which file owns that topic — keep
    page-metadata rules in `pages.test.ts`, references in `links.test.ts`,
    machine-readable outputs in `feeds.test.ts`, accessibility in
-   `a11y.test.ts`.
+   `a11y.test.ts`, payload budgets in `performance.test.ts`.
 2. Use the shared loaders instead of touching the filesystem directly:
    `contentPages()` / `allHtmlFiles()` give parsed pages; `resolveInDist()`
    answers "does this URL exist in the build?"; `readDistFile()` reads any
