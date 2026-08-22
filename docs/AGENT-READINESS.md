@@ -3,6 +3,34 @@
 Status: **implemented on `feat/agent-readiness`**, verified by a clean production build.
 Last reviewed: 22 August 2026.
 
+## Measured baseline & response — official is-agentic.com scan, 2026-08-22
+
+`npx is-agentic automancer.uk` measured **63/100** ("Important blockers remain"):
+Essential **48.9/80** (5 of 9 checks), Recommended **11.5/20** (7 of 14), Bonus **+2.1**.
+What follows is what we changed in response, and — just as important — what we
+deliberately did not fake.
+
+### Fixed
+
+| Finding | Was | Response |
+| --- | --- | --- |
+| OpenAPI spec published | FAIL (Essential) | New **`/openapi.json`**: a real OpenAPI 3.1 document describing all six `/api/*.json` GET endpoints — unique `operationId` per operation, per-operation description, explicit empty `parameters`, typed response schemas (`components/schemas`), root-level `security: []` documenting that no authentication exists. Generated from the same registry as the endpoints themselves (`src/data/api.ts`) plus `business.ts`, so spec, discovery document and payloads cannot drift; tests validate every emitted payload against its declared schema. |
+| Agent instruction / when-to-use guidance | FAIL (Recommended) | New **"When to use Automancer"** section in `/llms.txt`: concrete jobs drawn only from the published services (`src/data/business.ts`) and real delivered work (`src/content/` — care provider, trade portal, debiaser productisation, fast websites), each tied to named offerings and published prices, followed by an explicit when-to-look-elsewhere list (services outside automation/AI/websites, enterprise-scale procurement, non-UK on-site work, instant-SLA support). No generic marketing copy. |
+| Developer resource discoverability + API/docs linked from homepage | FAIL/PARTIAL (Recommended) | New human-readable documentation page at **`/developers`**: covers every endpoint with example requests, the `.md` twin convention, feeds, `/agent.json`, `/openapi.json`, sitemap, security.txt — and states plainly that the API needs **no authentication** and is **read-only**. Linked from the homepage (a dedicated section), `llms.txt`, `robots.txt`, `/api/index.json` (`related`) and `agent.json`. |
+| JSON-LD Person node completeness | PARTIAL | The founder Person node already carried `name`, `jobTitle` and `url` in this tree (the scanner most plausibly measured a deploy predating them); we added a truthful `description` so the node is complete on all four axes. The ProfessionalService node already carries name, legalName, url, description, address and contact points. **`sameAs` is deliberately absent**: this repo publishes no public social-profile URLs anywhere, and inventing one would be fabrication. A test enforces that any future `sameAs` value must exist verbatim in `src/data/`. |
+| Agent-friendly 404s | PARTIAL (Essential) | A genuine HTTP 404 was already served; the 404 page gained a compact recovery block pointing agents at `/sitemap-index.xml`, `/llms.txt`, `/llms-full.txt` and `/developers` with one-line descriptions. It stays fully visible and useful to humans — it doubles as a "go deeper" list rather than a hidden comment. |
+
+### Not attempted — host limitations, faking them would be worse than failing
+
+| Finding | Why it cannot pass on GitHub Pages |
+| --- | --- |
+| Markdown content negotiation (`Accept: text/markdown` → markdown body + `Vary: Accept`) | GitHub Pages serves static files only: no content negotiation, no custom response headers. Our `.md` twins at explicit URLs are the best available equivalent on this host. Any workaround would be a fabrication, not a fix. |
+| Brand-name discoverability | A search-index outcome, not a property of this codebase. |
+
+The dot-path serving constraint documented below remains in force and affects
+scoring similarly: `/.well-known/*` copies are emitted but 404 live, which is
+why every advertisement points at the servable non-dot paths instead.
+
 ## Host constraint: GitHub Pages does not serve dot-prefixed paths
 
 Measured live against production on 2026-08-22, with `.nojekyll` present in
@@ -80,9 +108,11 @@ from each other or from the HTML pages.
 
 | Check | Status | File(s) | Notes |
 | --- | --- | --- | --- |
-| `llms.txt` | Done | `src/pages/llms.txt.ts` | Business summary, pricing, contact, sitemap, and a "machine-readable surfaces" section advertising everything below. |
+| `llms.txt` | Done | `src/pages/llms.txt.ts` | Business summary, when-to-use guidance, pricing, contact, sitemap, and a "machine-readable surfaces" section advertising everything below. |
 | Full-text file | Done | `src/pages/llms-full.txt.ts` | Whole site's text in one file; every section headed with its canonical URL; legal pages listed as metadata + pointer only. |
-| JSON API | Done | `src/pages/api/*.json.ts` | Six endpoints: `index.json` (discovery), `business.json`, `services.json`, `case-studies.json`, `field-notes.json` (full body text), `pages.json` (inventory incl. twin URLs + last-modified). |
+| JSON API | Done | `src/pages/api/*.json.ts`, `src/data/api.ts` | Six endpoints: `index.json` (discovery), `business.json`, `services.json`, `case-studies.json`, `field-notes.json` (full body text), `pages.json` (inventory incl. twin URLs + last-modified). The endpoint list is one shared registry (`src/data/api.ts`) consumed by the discovery document, the OpenAPI spec and `/developers`. |
+| OpenAPI 3.1 spec | Done | `src/data/openapi.ts` rendered at `/openapi.json` (`src/pages/openapi.json.ts`) | Every operation: unique `operationId`, summary + description, explicit empty parameters, typed response schema; root `security: []` (no auth). Payloads are validated against the declared schemas by tests. |
+| Developer documentation | Done | `src/pages/developers.astro` at `/developers` | Human-readable docs for every endpoint (with example requests), twins, feeds, manifests and policies; states no-authentication/read-only plainly. Linked from homepage, llms.txt, robots.txt, api/index.json and agent.json. |
 | Feeds | Done | `src/data/feeds.ts`, `src/pages/{work,field-notes}/{rss.xml,feed.json}.ts` | RSS 2.0 with full `content:encoded`, and JSON Feed 1.1 with full `content_text` — not excerpts. |
 | `agent.json` (capability manifest) | Done | `src/data/wellknown-agent.ts` rendered at BOTH `/agent.json` (`src/pages/agent.json.ts`, served by GitHub Pages) and `/.well-known/agent.json` (injected in `astro.config.mjs`) | Byte-identical copies, asserted. Capability manifest: contact routes (with JS caveats stated), every endpoint, policy, permissions, legal-page stance, and a pointer to `/security.txt`. |
 | `security.txt` (RFC 9116) | Done | `src/data/wellknown-security.ts` rendered at BOTH `/security.txt` (`src/pages/security.txt.ts`, served) and `/.well-known/security.txt` (injected) | RFC 9116 valid: `Contact`, `Expires` (generated at build, ~1 year out — can never silently expire), `Preferred-Languages`, and `Canonical: https://automancer.uk/security.txt` — the URL the file actually resolves at on this host. Byte-identical copies, asserted. |
@@ -155,3 +185,8 @@ Enforced in code by `legalNoMirror` in `src/data/site-content.ts`
    actually served and advertised (see the host-constraint section above).
    If that host behaviour ever changes, re-pointing is a one-line change per
    advertiser plus this document — the tests pin the current arrangement.
+6. Markdown content negotiation (`Accept: text/markdown`, `Vary: Accept`) is
+   impossible on a static host; path-convention `.md` twins are the ceiling
+   here (see the not-attempted table in the measured-baseline section).
+7. Brand-name discoverability is a search-index outcome, outside this repo's
+   control.

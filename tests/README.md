@@ -39,6 +39,14 @@ tests/a11y.test.ts          structural accessibility: landmarks, skip link,
 tests/feeds.test.ts         sitemap exactness vs emitted pages, robots.txt,
                             llms.txt byte-parity with src/data/business.ts
                             (the anti-drift test), draft exclusion end to end
+tests/agent-readiness.test.ts  the machine-readable surface: Markdown twins,
+                            llms.txt, /api/*.json payloads, agent.json +
+                            security.txt (both routes, byte-parity), feeds
+tests/developer-surface.test.ts  the post-scan surface (2026-08-22): OpenAPI 3.1
+                            spec validity + unique operationIds + payload/schema
+                            conformance, /developers coverage vs api/index.json,
+                            homepage link, llms.txt when-to-use guidance, 404
+                            agent-recovery links, JSON-LD person/org completeness
 tests/assets.test.ts        rot-guard: every file in public/assets/images must
                             be referenced somewhere in dist/ (this directory
                             collected dead og-image/logo variants before)

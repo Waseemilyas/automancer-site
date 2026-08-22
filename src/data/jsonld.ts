@@ -22,6 +22,8 @@ export function founderNode() {
     '@id': `${business.url}/about/#waseem-ilyas`,
     name: 'Waseem Ilyas',
     jobTitle: 'Founder and sole director',
+    description:
+      'Engineer who founded Automancer Ltd to give small businesses the same automation leverage as big firms; makes every decision and takes every call.',
     url: `${business.url}/about/`,
   };
 }

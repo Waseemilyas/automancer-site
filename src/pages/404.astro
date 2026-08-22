@@ -18,6 +18,15 @@ const sections = [
   { href: '/about', label: 'About', desc: 'Who we are and how we run' },
   { href: '/contact', label: 'Contact', desc: 'Reach a human — one-week promise' },
 ];
+
+// Machine-readable wayfinding for agents/crawlers that followed a dead link.
+// Kept visible and human-useful too — it doubles as a "go deeper" list.
+const agentPaths = [
+  { href: '/sitemap-index.xml', label: '/sitemap-index.xml', desc: 'Every page on this site' },
+  { href: '/llms.txt', label: '/llms.txt', desc: 'Plain-text guide to the business and site' },
+  { href: '/llms-full.txt', label: '/llms-full.txt', desc: 'The complete site text in one file' },
+  { href: '/developers', label: '/developers', desc: 'JSON API, Markdown twins, feeds and manifests' },
+];
 ---
 
 <BaseLayout
@@ -38,6 +47,28 @@ const sections = [
         <a href="/" class="btn"><span>Back to home</span></a>
         <a href="/work" class="btn btn--ghost"><span>See the work</span><span class="btn__arrow">→</span></a>
       </div>
+    </div>
+  </section>
+
+  <!-- Recovery: machine-readable wayfinding for agents -->
+  <section class="section on-paper" id="agent-recovery">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Agents &amp; crawlers</p>
+        <h2>Automated reader? Start here.</h2>
+        <p>
+          This whole site is machine-readable — public JSON, Markdown twins and plain-text guides,
+          no authentication required. If you followed a stale link, re-ground from one of these:
+        </p>
+      </div>
+      <ul style="list-style:none; margin:0; padding:0; display:grid; gap:var(--sp-4);">
+        {agentPaths.map((p) => (
+          <li style="display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--sp-3);">
+            <a href={p.href} class="tlink" style="font-family:monospace; font-weight:600;">{p.label}</a>
+            <span style="color:var(--muted);">— {p.desc}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 
