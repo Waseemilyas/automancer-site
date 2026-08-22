@@ -407,7 +407,72 @@ GitHub release and nothing further.
 
 ---
 
-# HANDOVER STATE — written 2026-08-22 ~01:40Z, before compaction
+# HANDOVER STATE — updated 2026-08-22 ~02:50Z
+
+## Everything is landed. Nothing is in flight.
+
+- `main` is `0 0` with origin. Working tree clean.
+- **100 assertions across 9 test files**, `astro check` 0 errors, production build green.
+- CI and Deploy green. Production verified from the live site with positive AND
+  negative controls after every deploy.
+- **Eight releases shipped tonight**, `v2026.08.21.1` through `v2026.08.22.8`,
+  every one published and read back from GitHub.
+- Tag/release parity clean: the only tag without a release is
+  `v2026.08.08.1`, whose annotation says it is the pre-release baseline.
+- All three lane checkouts removed after verifying their work was merged and no
+  process still held them. Only the main checkout remains.
+
+## What shipped, in one list
+
+| Area | Result |
+|---|---|
+| Tests | 0 → 100 assertions over the real build output, plus CI |
+| Defects fixed | 9 accessibility/SEO faults found by those tests, fixed at source |
+| Agent-readiness | 19 md twins, 6 JSON endpoints, OpenAPI 3.1, `/developers`, feeds, `llms-full.txt`, `agent.json`, `security.txt`, when-to-use guidance |
+| Dependencies | astro 7.1.6 → 7.2.4, five-commit upstream backlog integrated |
+| Performance | 22 duplicate font binaries removed (checksum-verified identical), enforced per-route weight budgets |
+| Design | hero restructured, prices in identical plates, two real contrast failures fixed (2.40 → 5.02) |
+| Monitoring | mandatory post-deploy production check + scheduled uptime, sharing one script; alarm if Sentry goes dark |
+| Legal integrity | `/privacy` and `/terms` wording pinned so it cannot drift from its published date |
+
+## Open, deliberately — for a human, not for me at 3am
+
+1. **`/terms/` publishes no date or version at all**, unlike `/privacy/`. A
+   visitor cannot tell which version binds them. Characterised in
+   `tests/legal-integrity.test.ts` with both options documented; not decided,
+   because choosing a truthful date for a legal document is a judgement.
+2. **is-agentic score is stale at 63/100.** All five fixable findings are live
+   and individually verified, but their CLI serves a cached report and only
+   scans when none exists — the API is read-only. A fresh score needs their
+   browser form. An unchanged score is not evidence the fixes failed.
+3. **Two is-agentic checks will keep failing and should**: markdown content
+   negotiation with `Vary: Accept` (GitHub Pages cannot do content negotiation
+   or custom headers) and brand-name search discoverability (an index outcome).
+
+## CADENCE — run these, do not remember them
+
+Every one of these caught something after I had already reported it clean:
+
+1. `git fetch && git rev-list --left-right --count origin/main...main` → `0 0`.
+2. Tag/release parity. **`release` does not publish.** Check a CHANGELOG entry
+   exists BEFORE pushing a tag — a tag without one becomes a permanent orphan.
+3. `gh run list --limit 5`. "I verified locally" and "CI is green" are different
+   claims, and local runs here use Node 24 while CI pins 22.
+4. Verify production with a positive AND a negative control.
+5. `oxboard notices` / `oxboard log`; `oxboard claim` before reporting.
+6. **Before believing any "nothing found", prove the check could have found
+   something.** Three distinct species bit me tonight: a blind pattern
+   (`bfs` rejecting `-newermt`, `ugrep` rejecting `.{0,45}`, a regex anchored
+   with `$`), a truncated read, and a second-stage filter that discarded the
+   answer. Each needs a different control.
+7. Review the diff, not the report: logic, then numbers, then error paths, then
+   scope. All four caught something the others missed.
+
+
+---
+
+## Earlier handover (01:40Z), kept for the record
+
 
 ## Landed tonight, with SHAs
 
