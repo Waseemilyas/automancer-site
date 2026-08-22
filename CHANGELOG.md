@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.22.8 — 22 August 2026
+
+Service links keep the same published identity when service names change, so existing references continue to work.
+
+
 ## v2026.08.22.7 — 22 August 2026
 
 If the security check fails twice, the contact form offers an email fallback so you can still send your enquiry.
