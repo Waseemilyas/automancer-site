@@ -1,4 +1,39 @@
-# Ox Alpha Campaign — automancer-site
+# Ox Alpha Campaign — automancer.uk
+
+**For the morning check-in.** Detail and incident notes follow below; this is the
+part worth reading first.
+
+## What shipped, and what it means for the site
+
+Everything below is on `main`, released, and verified against the live site —
+not against CI, and not against a lane's report. Production tracks `main` within
+about 40 seconds, so every merge tonight was treated as a deploy.
+
+| What | Why it matters |
+|---|---|
+| **A test suite, from zero to 62 assertions** | The repo had no tests at all. These run against the real built site, so they assert what a visitor or a crawler actually receives. |
+| **Nine real defects fixed** | Found by those tests, fixed at source rather than by relaxing the test. Every page skipped from `h2` to `h4` (a genuine accessibility fault), the 404 page had no heading, and four pages had search descriptions too long to display in full. |
+| **The agent-readiness work you asked for** | 19 Markdown versions of pages, six JSON endpoints, RSS and JSON feeds, a full-site text document, an agent manifest, and a `robots.txt` that names 19 AI crawlers and blocks none of them. |
+| **Astro 7.1.6 → 7.2.4 and the upstream backlog** | The local checkout was five commits behind and nobody had noticed. Integrated, reinstalled, re-verified against the real dependency set. |
+| **Production is now checked after every deploy** | A new mandatory job fetches the live site and fails the run if it is wrong. The same checks run every 30 minutes. Previously nothing would have told us the site was down. |
+| **14 dead files removed** | Superseded images and an unused stylesheet, each proven unreferenced, with a test that fails if one reappears. |
+
+## What is still in progress
+
+- **`/.well-known/agent.json` returns 404 in production.** GitHub Pages does not
+  serve any path beginning with a dot — the files build correctly and are simply
+  never served. Our own `llms.txt` advertises that URL, so agents following it
+  get a 404. A fix is mid-flight: the same documents served from `/agent.json`
+  and `/security.txt`, which Pages does serve.
+- **A visual and accessibility pass** is running against the existing design.
+
+## If something looks wrong
+
+`docs/DEPLOYMENT.md` has the rollback. In short: almost always a one-commit
+revert, because only one commit changes what a visitor sees. Redeploy is
+automatic on push and takes about 40 seconds.
+
+---
 
 **Repo:** `automancer/automancer-site` (public marketing site, automancer.uk)
 **Orchestrator:** Claude (herdr pane w2), delegated authority via campaign lead.

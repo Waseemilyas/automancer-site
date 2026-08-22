@@ -1,7 +1,48 @@
 # Agent-readiness — automancer.uk against is-agentic.com
 
 Status: **implemented on `feat/agent-readiness`**, verified by a clean production build.
-Last reviewed: 21 August 2026.
+Last reviewed: 22 August 2026.
+
+## Host constraint: GitHub Pages does not serve dot-prefixed paths
+
+Measured live against production on 2026-08-22, with `.nojekyll` present in
+the deployed artifact:
+
+| Path | Live status |
+| --- | --- |
+| `/.well-known/agent.json` | 404 |
+| `/.well-known/security.txt` | 404 |
+| `/.nojekyll` | 404 (so `.nojekyll` alone does not fix it) |
+| `/api/index.json` (same build, same deploy, non-dot) | 200 |
+
+A file can therefore be present and correct in `dist/`, pass every dist/-only
+check, deploy green — and still never be served. That is exactly what shipped
+first time: both manifests were advertised in `llms.txt`, `robots.txt` and the
+API discovery document while returning 404 to every agent that followed them.
+An advertisement that resolves to a 404 is worse than no advertisement.
+
+The response, now enforced in code and tests:
+
+1. **Canonical copies are served at non-dot paths** — `/agent.json` and
+   `/security.txt` at the site root. These are what agents can actually
+   fetch on this host today.
+2. **The `/.well-known/` routes stay emitted** (`/.well-known/agent.json`,
+   `/.well-known/security.txt`). They cost nothing, they are the standardised
+   locations, and they start working the day the host serves dot-paths. Both
+   pairs render from one builder each (`src/data/wellknown-agent.ts`,
+   `src/data/wellknown-security.ts`) and are asserted byte-identical, so the
+   copies cannot drift.
+3. **Everything advertises the servable URLs.** `llms.txt`, `robots.txt`,
+   `api/index.json` and `agent.json` itself point at `/agent.json` and
+   `/security.txt`. A `/.well-known/` mention may appear only after the
+   working URL and clearly marked secondary. `security.txt`'s `Canonical`
+   names `/security.txt` — RFC 9116 requires Canonical to be a URL the file
+   is actually served from; one resolving to a 404 makes the document
+   non-conformant.
+4. **Production is checked, not just the artifact.** `ops/verify-production.sh`
+   asserts `/agent.json` answers 200 with parseable JSON and `/security.txt`
+   answers 200 satisfying RFC 9116 (including that `Canonical` matches the
+   served URL). It runs post-deploy and on the uptime cron.
 
 ## How is-agentic.com scores
 
@@ -27,7 +68,7 @@ declared them.
 | Clear document structure | Done | `src/layouts/BaseLayout.astro`, `src/styles/global.css` | One `<h1>` per page, ordered heading hierarchy, semantic `<article>`/`<section>`, skip-link, `lang="en-GB"`, descriptive link text. |
 | Structured data | Done | `src/components/JsonLd.astro` + `src/data/jsonld.ts` | One schema.org JSON-LD `@graph` per page: Organization + WebSite + WebPage subtype, Article nodes on field notes; all `@id`s absolute. |
 | Error recovery (404) | Done | `src/pages/404.astro` | States plainly what happened, links every top-level section with descriptions, lists recent field notes and every case study, gives email/phone/form contact routes. Static, fully server-rendered. |
-| Usable interactive controls without JS | Partial (honest gap) | `src/pages/contact.astro`, `/.well-known/agent.json` | All navigation works without JS. The contact form requires JavaScript plus a Cloudflare Turnstile check — there is no pure-HTML fallback form. Mitigation: the 404 page, footer, `agent.json`, `llms.txt` and `contact.md` all surface direct `mailto:` and phone routes, and `agent.json` tells agents to prefer email. Residual gap accepted: a no-JS agent can always reach a human by mailto. |
+| Usable interactive controls without JS | Partial (honest gap) | `src/pages/contact.astro`, `/agent.json` | All navigation works without JS. The contact form requires JavaScript plus a Cloudflare Turnstile check — there is no pure-HTML fallback form. Mitigation: the 404 page, footer, `agent.json`, `llms.txt` and `contact.md` all surface direct `mailto:` and phone routes, and `agent.json` tells agents to prefer email. Residual gap accepted: a no-JS agent can always reach a human by mailto. |
 | Sitemap | Done | `@astrojs/sitemap` | `sitemap-index.xml` + page sitemaps generated at build; drafts never enter it. |
 
 ## Conditional Recommended pool (20 points) — machine-readable capability
@@ -43,8 +84,8 @@ from each other or from the HTML pages.
 | Full-text file | Done | `src/pages/llms-full.txt.ts` | Whole site's text in one file; every section headed with its canonical URL; legal pages listed as metadata + pointer only. |
 | JSON API | Done | `src/pages/api/*.json.ts` | Six endpoints: `index.json` (discovery), `business.json`, `services.json`, `case-studies.json`, `field-notes.json` (full body text), `pages.json` (inventory incl. twin URLs + last-modified). |
 | Feeds | Done | `src/data/feeds.ts`, `src/pages/{work,field-notes}/{rss.xml,feed.json}.ts` | RSS 2.0 with full `content:encoded`, and JSON Feed 1.1 with full `content_text` — not excerpts. |
-| `.well-known/agent.json` | Done | `src/data/wellknown-agent.ts`, injected as a route in `astro.config.mjs` | Capability manifest: contact routes (with JS caveats stated), every endpoint, policy, permissions, legal-page stance. |
-| `.well-known/security.txt` | Done | `src/data/wellknown-security.ts`, injected as a route in `astro.config.mjs` | RFC 9116 valid: `Contact`, `Expires` (generated at build, ~1 year out — can never silently expire), `Preferred-Languages`, `Canonical`. |
+| `agent.json` (capability manifest) | Done | `src/data/wellknown-agent.ts` rendered at BOTH `/agent.json` (`src/pages/agent.json.ts`, served by GitHub Pages) and `/.well-known/agent.json` (injected in `astro.config.mjs`) | Byte-identical copies, asserted. Capability manifest: contact routes (with JS caveats stated), every endpoint, policy, permissions, legal-page stance, and a pointer to `/security.txt`. |
+| `security.txt` (RFC 9116) | Done | `src/data/wellknown-security.ts` rendered at BOTH `/security.txt` (`src/pages/security.txt.ts`, served) and `/.well-known/security.txt` (injected) | RFC 9116 valid: `Contact`, `Expires` (generated at build, ~1 year out — can never silently expire), `Preferred-Languages`, and `Canonical: https://automancer.uk/security.txt` — the URL the file actually resolves at on this host. Byte-identical copies, asserted. |
 | robots.txt welcoming AI crawlers | Done | `src/pages/robots.txt.ts` | Generated. No Disallow rules for content; major AI crawlers explicitly Allowed; machine-readable surfaces advertised in comments; sitemap declared. |
 
 ### Markdown twins convention
@@ -76,7 +117,7 @@ and could republish a superseded privacy notice — a real liability.
 Choice made: emit **metadata only** — title, description, canonical URL,
 last-updated date (privacy), plus an explicit pointer to fetch the canonical
 HTML for the authoritative text. This choice is stated in `llms.txt`,
-`llms-full.txt`, `/.well-known/agent.json` (`legalPagesPolicy`) and here.
+`llms-full.txt`, `/agent.json` (`legalPagesPolicy`) and here.
 Enforced in code by `legalNoMirror` in `src/data/site-content.ts`
 (`markdownTwinPath()` returns `null` for those pages).
 
@@ -85,7 +126,7 @@ Enforced in code by `legalNoMirror` in `src/data/site-content.ts`
 | Check | Status | Notes |
 | --- | --- | --- |
 | `llms.txt` / `llms-full.txt` | Done | See above. |
-| `.well-known/agent.json` capability manifest | Done | Ahead of most sites; schemaVersion'd, additive-change policy stated. |
+| `agent.json` capability manifest | Done | Ahead of most sites; schemaVersion'd, additive-change policy stated. Served at `/agent.json` (and the conventional dot-path twin). |
 | Content negotiation-style twins (`.md`) | Done | Path-convention twins rather than Accept-header negotiation — deliberate, because the site is static files on GitHub Pages and cannot vary responses by header. |
 | JSON Feed alongside RSS | Done | Both formats per collection. |
 
@@ -108,3 +149,9 @@ Enforced in code by `legalNoMirror` in `src/data/site-content.ts`
 4. Legacy `.html` URLs resolve via Astro's meta-refresh pages rather than raw
    server redirects after the first hop — correct and verified live in
    production (canonical + noindex + followable anchor present); untouched.
+5. The `/.well-known/` locations of the agent manifest and security.txt are
+   emitted but 404 on this host until GitHub Pages serves dot-prefixed paths;
+   the canonical copies at `/agent.json` and `/security.txt` are what is
+   actually served and advertised (see the host-constraint section above).
+   If that host behaviour ever changes, re-pointing is a one-line change per
+   advertiser plus this document — the tests pin the current arrangement.
