@@ -287,9 +287,21 @@ commit -> push to main -> GitHub Actions -> actions/checkout of that SHA
        -> automancer.uk, ~40s later
 ```
 
-Nothing else runs this code. Verified, not assumed: no systemd unit, timer,
-cron entry or user unit references this path, and nothing in the shared
-`ops/scripts` or `auto/scripts` trees shells out to it.
+Nothing else runs this code. Verified with a negative control, because a
+"nothing found" result is worthless if the check could not have found anything:
+`systemctl --user list-units` shows 49 services and 20 timers, so user-level
+scheduling IS visible here — and none of it references this repo. Nor does any
+system unit, cron entry, or anything in the shared `ops/scripts` /
+`auto/scripts` trees.
+
+(Caution for anyone repeating this: grepping for `site` matches
+`al-lm1-offsite-pull`. Match the repo path, not a fragment of its name.)
+
+**The one shared path this repo depends on** is
+`/opt/automancer/auto/scripts/release-notes.mjs`, invoked by absolute path
+every time a release is cut here — five times tonight. An edit to that file is
+live for the next caller instantly, with no deploy step. No lane has ever been
+pointed at it from this repo, and none will be.
 
 Two consequences follow from the mechanism rather than from anyone's care:
 
