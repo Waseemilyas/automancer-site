@@ -1,0 +1,38 @@
+name: Uptime
+
+# Production uptime monitor. The site has no other availability signal:
+# Sentry's browser SDK captures client-side JS errors only and would not
+# notice the site down, a failed deploy, or an expired certificate.
+#
+# Runs ops/verify-production.sh — the exact same assertions as the verify
+# job in deploy.yml, from one shared script so the two can never drift.
+#
+# Cron is UTC and GitHub schedules best-effort; runs may lag a few minutes
+# past the half-hour. workflow_dispatch allows triggering a check on demand.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  # Never cancel an in-flight check: a slow run must finish and report, not
+  # vanish because the next scheduled run started.
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # Worst case is every check burning its full 90s retry budget (~19 min);
+    # a healthy site finishes in under a minute.
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify production serves the site
+        run: ops/verify-production.sh https://automancer.uk

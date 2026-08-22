@@ -80,3 +80,26 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+  # Post-deploy verification against PRODUCTION ITSELF. deploy-pages only
+  # proves GitHub accepted the artifact; a build that emitted broken or empty
+  # pages would otherwise go green and stay green. This job fails the whole
+  # run unless every page answers, unknown paths are a real 404, llms.txt and
+  # the sitemap exist, the legal footer anchor is served, and the TLS
+  # certificate is valid and more than 14 days from expiry.
+  #
+  # The assertions live in ops/verify-production.sh — shared verbatim with
+  # uptime.yml so the two can never drift apart. No continue-on-error here:
+  # this job is mandatory, a red verify means a red release.
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    # Worst case is every check burning its full 90s retry budget (~19 min);
+    # a healthy deploy finishes this job in under a minute.
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify production serves the new deploy
+        run: ops/verify-production.sh https://automancer.uk

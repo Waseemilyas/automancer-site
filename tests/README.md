@@ -39,6 +39,9 @@ tests/a11y.test.ts          structural accessibility: landmarks, skip link,
 tests/feeds.test.ts         sitemap exactness vs emitted pages, robots.txt,
                             llms.txt byte-parity with src/data/business.ts
                             (the anti-drift test), draft exclusion end to end
+tests/assets.test.ts        rot-guard: every file in public/assets/images must
+                            be referenced somewhere in dist/ (this directory
+                            collected dead og-image/logo variants before)
 ```
 
 Page categories (see `tests/support/dist.ts`):

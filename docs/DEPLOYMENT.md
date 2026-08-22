@@ -59,8 +59,8 @@ change did.
 
 ## Verify from production, never from the green tick
 
-The workflow reporting success does not mean the site is correct. Check what is
-actually served:
+The workflow reporting success does not mean the site is correct. The manual
+spot-check is:
 
 ```bash
 for u in / /404.html /field-notes/ /llms.txt /sitemap-index.xml; do
@@ -69,21 +69,45 @@ done
 curl -s -o /dev/null -w '%{http_code}\n' https://automancer.uk/definitely-not-a-page   # must be 404
 ```
 
+`ops/verify-production.sh` automates a stronger version of this: page
+statuses, a real (not soft) 404, `llms.txt`, sitemap XML validity, the legal
+footer anchor on the homepage, and TLS certificate expiry more than 14 days
+out — each retried for up to 90 seconds so a lagging Pages deploy is ridden
+out but a real failure still fails. It takes the base URL as its argument,
+so it can be pointed at a preview:
+
+```bash
+ops/verify-production.sh https://automancer.uk
+```
+
 ## Things that look wrong and are not
 
 - **`/services.html` returns 301, then a 200 page.** The 301 only adds a trailing
   slash; the hop that reaches `/services` is a `<meta http-equiv="refresh">` page
   that Astro emits with a canonical link, `noindex`, and a real anchor. It is not
   a redirect loop and it is not broken.
+- **A bare path like `/services` returns 301 before the 200.** GitHub Pages
+  redirects directory-style URLs to their trailing-slash canonical form. The
+  verifier follows redirects and asserts the final status, so this hop is
+  expected and checked end to end.
 - **The 301 body mentions nginx.** That string is page content in GitHub's error
   template. The actual `Server:` header is `GitHub.com`. Read the header, not the
   body.
 - **Legacy `*.html` stub pages have no `<h1>`.** Correct for a redirect page; the
   test suite excludes them deliberately.
 
-## Known gap
+## Uptime monitoring
 
-**There is no uptime check and no error alerting.** Sentry's browser SDK captures
-client-side JavaScript errors only — it would not notice the site serving a 404, a
-failed deploy, or an expired certificate. Nothing would tell us the site was down.
-Adding an external uptime check is outstanding work.
+Two GitHub Actions workflows call `ops/verify-production.sh` against
+production:
+
+- **`deploy.yml` → `verify` job** — runs after every deploy and fails the
+  release run if production does not serve what was shipped.
+- **`uptime.yml`** — cron every 30 minutes plus on-demand dispatch, covering
+  everything between deploys: site down, certificate expiring, a bad change
+  landing out-of-band.
+
+Failures surface as red runs (GitHub notifies maintainers of failing
+scheduled workflows by email). There is no dedicated pager or external
+multi-region vantage point — if monitoring needs to survive GitHub itself
+being unable to see the site, that remains outstanding work.
