@@ -18,6 +18,32 @@ about 40 seconds, so every merge tonight was treated as a deploy.
 | **Production is now checked after every deploy** | A new mandatory job fetches the live site and fails the run if it is wrong. The same checks run every 30 minutes. Previously nothing would have told us the site was down. |
 | **14 dead files removed** | Superseded images and an unused stylesheet, each proven unreferenced, with a test that fails if one reappears. |
 
+## The agent-readiness score, measured
+
+is-agentic.com publishes an official CLI, so this is a real reading rather than
+my opinion:
+
+    npx is-agentic automancer.uk        ->  63 / 100
+    Essential 48.9/80 · Recommended 11.5/20 · Bonus +2.1
+    https://is-agentic.com/scan/automancer.uk
+
+**I expected better and was wrong**, which is the useful part. I built the
+machine-readable surface against their published methodology and assumed it
+would score well. Measuring found things reading could not:
+
+- We publish six JSON endpoints and **no OpenAPI spec**, which fails one
+  Essential check and two Recommended ones at once.
+- The scanner reads our structured data as a **Person**, not the Organization
+  we thought was primary.
+- One Essential failure is **not ours to fix**: it wants `Accept: text/markdown`
+  content negotiation with `Vary: Accept`, and GitHub Pages serves static files
+  with no negotiation and no custom headers. Our `.md` twins at explicit URLs
+  are the best available on this host. I have told the lane not to fake it.
+- Two more are search-index outcomes, not code.
+
+A lane is working the fixable findings now. I will re-scan after it deploys and
+report the delta rather than claiming an improvement.
+
 ## What is still in progress
 
 - **`/.well-known/agent.json` returns 404 in production.** GitHub Pages does not
