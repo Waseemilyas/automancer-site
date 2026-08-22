@@ -9,7 +9,7 @@
  * expired, a feed missing the newest post. Everything here audits the bytes
  * actually emitted into dist/, never the source templates.
  */
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DIST, SITE_URL, contentPages, readDistFile, resolveInDist } from './support/dist';
@@ -489,5 +489,21 @@ describe('legal pages (/privacy/, /terms/) are never mirrored', () => {
         `dist/${twin} mirrors a legal page — privacy/terms bodies are deliberately never transcribed`
       ).toBe(false);
     }
+  });
+});
+
+describe('GitHub Pages serving constraints', () => {
+  // GitHub Pages runs Jekyll, which silently EXCLUDES any path beginning with
+  // a dot or an underscore. Without .nojekyll the entire /.well-known/
+  // directory builds correctly, passes every dist/ assertion, deploys green —
+  // and 404s in production. That happened: agent.json and security.txt were
+  // advertised in llms.txt and robots.txt while returning 404 to every agent
+  // that followed them.
+  it('emits .nojekyll so dot-directories are actually served', () => {
+    expect(
+      existsSync(join(DIST, '.nojekyll')),
+      '.nojekyll is missing from dist/ — GitHub Pages will Jekyll-process the ' +
+        'build and silently drop /.well-known/, which builds fine and 404s live'
+    ).toBe(true);
   });
 });
