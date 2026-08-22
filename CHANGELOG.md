@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.22.2 — 22 August 2026
+
+Automancer’s public website now makes its service information and security contact details available to the tools and services that look for them.
+
+
 ## v2026.08.22.1 — 22 August 2026
 
 This release makes the site easier to explore, recover from errors, and access in different reading tools.
