@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.22.7 — 22 August 2026
+
+If the security check fails twice, the contact form offers an email fallback so you can still send your enquiry.
+
+
 ## v2026.08.22.6 — 22 August 2026
 
 This release makes Automancer’s public information easier for developers and AI tools to discover, understand, and use through clearer guidance and a dedicated developer area.
