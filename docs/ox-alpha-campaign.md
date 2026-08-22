@@ -913,3 +913,63 @@ checking it is an ordinary read that costs nothing and risks nothing. Where the 
 target is expensive or dangerous to touch, only the failing half is cheap, and a
 fail-only self-test cannot see a check that is impossible to satisfy. That is a real
 blind spot elsewhere; it is not one here.
+
+---
+
+## What I did not do, in one place
+
+Everything below was considered and left. Each says why, so none of it has to be
+re-derived. This list sits beside the work rather than after it, because a green repo
+with an unstated gap reads as more finished than it is.
+
+### Left because it needs a person, not more time
+
+**The terms page has no "last updated" date**, unlike the privacy page. Choosing a
+truthful date for a legal document is a judgement about the document, not a code
+change. Characterised in the tests with both options written out.
+
+**Whether a failed uptime check actually reaches you.** The monitor runs the checking
+script and stops. If the site goes down the workflow turns red, and whether that
+becomes an email depends on GitHub notification settings I cannot verify without
+breaking production deliberately. **Treat site monitoring as unconfirmed.** This is the
+one on this list I would look at first.
+
+### Left because it was the wrong hour for it
+
+**Asserting that production serves the revision we just deployed.** The site publishes
+its revision — that half is done and I had it wrongly recorded as missing for hours.
+The check that compares it is written up in full above, including the trap that matters:
+the script is shared between the deploy gate, which knows the expected revision, and the
+hourly monitor, which does not, so the monitor's case must pass or it alerts forever
+against a healthy site. A lane was started for this and **deliberately killed**: it edits
+the mandatory deploy gate, and the failure mode is a monitor that pages continuously over
+a weekend. The upside was closing one item a few hours early. That is a bad trade and the
+brief is worth more than a rushed change.
+
+**The rollback path has never been run.** Written down, never exercised.
+
+### Left because they are small and better done awake
+
+**Six assertions pass against a completely empty build.** The guard that catches an
+empty build sits in one of two routes into the built output; the other route has no
+equivalent. Nothing is unprotected today — the suite still fails overall — but the
+protection is thinner than it looks. One guard in `tests/support/perf.ts` mirrors the
+existing one.
+
+**Two unused imports** left over from an earlier fix, in `src/data/jsonld.ts` and
+`src/pages/api/services.json.ts`. The type checker labels them "warning" in its output
+and counts them as "hints" in its summary, so a build gated on "zero warnings" passes
+while warnings print on screen.
+
+**The agent-readiness score of 63 is stale.** All five fixable findings are live and
+individually verified, but their tool serves a cached report and only rescans when none
+exists. An unchanged score is not evidence the fixes failed.
+
+### Stated precisely so it is not mistaken for a clean bill
+
+**This repo ships nothing that could detect a committed secret** — no scanner
+configuration, no CI step, no such hook. It also states no rule requiring one, so it is
+not contradicting itself. But "no scanner" is not "no secrets", and I have not scanned.
+
+**The error-monitoring check proves a monitoring key is present, not that alerts reach
+anyone.** A rotated or wrong-project key would pass identically.
