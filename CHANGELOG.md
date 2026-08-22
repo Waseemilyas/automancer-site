@@ -6,11 +6,11 @@ Internal tooling only — nothing on the website changes for visitors.
 
 - The script that regenerates the social-sharing preview image now refuses bad
   arguments before it does anything, so it can no longer overwrite the live
-  image by mistake, and it always shuts the browser down afterwards. The script
-  had also stopped being runnable at all; that is fixed.
-- Note: only the argument checks were exercised. A successful end-to-end image
-  render has not been run, because the browser library it needs is not installed
-  on the build machine.
+  image by mistake, and it always shuts the browser down afterwards even when a
+  render fails. It had also stopped being runnable at all, and it pointed at a
+  Chromium version that is no longer installed; both are fixed.
+- Verified end to end: the script renders a real 1200x630 PNG, and the browser
+  it starts is gone afterwards.
 
 
 ## v2026.08.21.1 — 21 August 2026
