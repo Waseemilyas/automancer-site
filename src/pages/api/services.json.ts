@@ -14,7 +14,7 @@ export const GET: APIRoute = () =>
         currency: 'GBP',
         note: 'All prices are "from" prices in GBP, as published on https://automancer.uk/services',
         services: services.map((s) => ({
-          id: serviceId(s.name),
+          id: s.id,
           name: s.name,
           description: s.description,
           priceFrom: s.priceFrom,

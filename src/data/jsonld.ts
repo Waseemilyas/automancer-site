@@ -110,7 +110,7 @@ export function serviceCatalogNode() {
       name: 'Services and published from-prices (GBP)',
       itemListElement: services.map((s) => ({
         '@type': 'Offer',
-        '@id': `${business.url}/services/#offer-${serviceId(s.name)}`,
+        '@id': `${business.url}/services/#offer-${s.id}`,
         name: s.name,
         description: s.description,
         itemOffered: {

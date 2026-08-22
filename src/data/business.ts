@@ -10,6 +10,21 @@
  */
 
 export interface ServiceOffering {
+  /**
+   * Stable public identifier, published in /api/services.json and used as the
+   * JSON-LD offer @id.
+   *
+   * Declared explicitly rather than derived from `name`. It used to be a slug
+   * of the name, which made it a POINTER TO A MUTABLE FIELD dressed as an
+   * identifier: renaming a service silently changed its published id, and any
+   * consumer holding the old one would find it simply gone, with nothing to
+   * notice. These values are the ones already published, so pinning them here
+   * changes no output today and stops the drift tomorrow.
+   *
+   * Changing an id is a breaking change to a public API. Renaming a service is
+   * not.
+   */
+  id: string;
   name: string;
   description: string;
   /** GBP, numeric, no currency symbol. */
@@ -50,6 +65,7 @@ export function formatGBP(n: number): string {
 
 export const services: ServiceOffering[] = [
   {
+    id: 'automation-opportunity-audit',
     name: 'Automation Opportunity Audit',
     description:
       'A focused review of your workflows to identify where automation will have the biggest impact.',
@@ -57,12 +73,14 @@ export const services: ServiceOffering[] = [
     priceUnit: 'project',
   },
   {
+    id: 'workflow-implementation-sprint',
     name: 'Workflow Implementation Sprint',
     description: 'Build and deploy automation for 1–3 selected workflows.',
     priceFrom: 1950,
     priceUnit: 'project',
   },
   {
+    id: 'system-agent-build',
     name: 'System/Agent Build',
     description:
       'From task-specific assistants to full AI employees that draw on your organisational knowledge.',
@@ -70,6 +88,7 @@ export const services: ServiceOffering[] = [
     priceUnit: 'project',
   },
   {
+    id: 'ai-ops-partner',
     name: 'AI Ops Partner',
     description:
       'Ongoing optimisation and support as your automation footprint grows.',
