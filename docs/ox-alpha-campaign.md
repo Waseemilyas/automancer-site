@@ -427,7 +427,12 @@ commit them until each lane exits and its diff is reviewed.
    because merging here IS deploying (production tracks `main` in ~40s).
 2. **Re-scan with `npx is-agentic automancer.uk`** after the `score` lane deploys,
    and report the delta from the measured 63/100 — not a claimed improvement.
-3. **Add a cleanup trap to `ops/verify-production.sh`.** It `rm -f`s its temp
+3. **Assert that post bodies are non-empty.** `e.body ?? ''` in `feeds.ts`,
+   `llms-full.txt.ts` and the `.md` twins means an empty body emits an empty
+   feed item, an empty section and an empty twin — and passes all 69 assertions,
+   because the feed tests check item *count*, not content. Found by comparing
+   what sibling serialisers refuse.
+4. **Add a cleanup trap to `ops/verify-production.sh`.** It `rm -f`s its temp
    files on the normal and failure paths but NOT on SIGTERM, which is how
    `timeout` and CI's `timeout-minutes` kill it. Details in the post-lane
    checklist in my scratchpad; needs `trap ... EXIT INT TERM`.
