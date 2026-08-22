@@ -868,3 +868,29 @@ ones.
 Worth keeping as its own small rule: **a run that was cut short looks exactly like a run
 that finished, if you only read the failures it did produce.** Check that the thing
 printed its own ending. The rerun with a proper time budget is recorded below.
+
+### The rerun finished, and this one is complete
+
+Both directions of the production checking script are now observed in full.
+
+**Can each check report a problem?** Pointed at an address where nothing listens, with a
+time limit generous enough to finish: **all sixteen checks fail, none pass, and the run
+printed its own closing summary** — `RESULT: 16 check(s) FAILED`. Each failure names
+itself and carries the real reason, and the certificate check reports a certificate
+problem rather than a connection one, so they are not all collapsing into a single
+generic error.
+
+**Can each check report success?** All sixteen pass against the live site. Verified by
+hand twice tonight, immediately after each deploy, and by twenty-one runs on GitHub's
+machines today.
+
+The sixteen checks in the failing list are the same sixteen that pass against
+production. That correspondence is the point: it is what distinguishes "every check was
+exercised" from "the run stopped early and I read the failures it had managed".
+
+This repo is in the easy case for that, and it is worth saying why, because it will not
+generalise. **A known-good target here is free**: production is a public website, so
+checking it is an ordinary read that costs nothing and risks nothing. Where the healthy
+target is expensive or dangerous to touch, only the failing half is cheap, and a
+fail-only self-test cannot see a check that is impossible to satisfy. That is a real
+blind spot elsewhere; it is not one here.
