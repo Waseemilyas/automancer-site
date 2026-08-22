@@ -73,6 +73,16 @@ let cachedPages: BuiltPage[] | null = null;
 
 /** Every emitted .html file in dist/, parsed once per process. */
 export function allHtmlFiles(): BuiltPage[] {
+  // Guard against the whole suite passing while examining nothing.
+  //
+  // Most assertions here are `for (const page of allHtmlFiles())` or
+  // `refs.filter(...)`. If this returned an empty array, every one of those
+  // would pass VACUOUSLY — zero iterations, an empty offenders list, green.
+  // tests/links.test.ts in particular has three assertions and no count of its
+  // own, so an empty dist/ would have proved nothing while reporting success.
+  //
+  // The guard belongs HERE rather than in each test file, because the risk is
+  // shared and a per-file check only protects the files that remember it.
   if (!cachedPages) {
     cachedPages = walk(DIST)
       .filter((f) => f.endsWith('.html'))
@@ -92,6 +102,13 @@ export function allHtmlFiles(): BuiltPage[] {
         } satisfies BuiltPage;
       })
       .sort((a, b) => a.route.localeCompare(b.route));
+  }
+  if (cachedPages.length === 0) {
+    throw new Error(
+      `No HTML files found in ${DIST}. The production build produced nothing, so ` +
+        'every page-level assertion in this suite would pass without examining ' +
+        'anything. Run `pnpm run build` and check it succeeded.'
+    );
   }
   return cachedPages;
 }
