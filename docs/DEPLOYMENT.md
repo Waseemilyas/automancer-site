@@ -138,3 +138,24 @@ curl -s "https://automancer.uk$js" | grep -cE 'ingest\.(de\.)?sentry\.io'
 
 The positive control matters: without it, a failed fetch returns zero and reads
 identically to "monitoring is off".
+
+## Local verification runs on a different Node major than CI
+
+| | Node |
+|---|---|
+| `engines.node` | `>=22.12.0` |
+| CI and Deploy workflows | **22** |
+| This build box | **24.19.0** |
+
+Nothing is misconfigured — `engines` permits both, and pinning CI to the declared
+floor is a deliberate choice: it tests the oldest runtime we claim to support.
+
+The consequence is worth stating plainly, because it is easy to forget: **a green
+`pnpm run verify` on this box is not proof of a green CI run.** It is evidence
+from a runtime CI never uses. CI is authoritative; local is a fast pre-filter.
+
+If you ever need them to agree — debugging a failure that reproduces only in CI —
+run the suite under Node 22 rather than assuming the difference is irrelevant.
+
+`@types/node` is deliberately not a dependency here; nothing in this repo needs
+Node type definitions, so there is no version to keep in step.
