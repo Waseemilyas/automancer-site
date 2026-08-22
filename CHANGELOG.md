@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.22.9 — 22 August 2026
+
+Published updates now receive a more complete release check, so empty entries are caught before they appear on the website.
+
+
 ## v2026.08.22.8 — 22 August 2026
 
 Service links keep the same published identity when service names change, so existing references continue to work.
