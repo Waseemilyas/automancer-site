@@ -41,8 +41,34 @@ would score well. Measuring found things reading could not:
   are the best available on this host. I have told the lane not to fake it.
 - Two more are search-index outcomes, not code.
 
-A lane is working the fixable findings now. I will re-scan after it deploys and
-report the delta rather than claiming an improvement.
+### What was fixed, and why there is no new score yet
+
+All five fixable findings are live and each was verified individually against
+production, not against the build:
+
+| Finding | Status |
+|---|---|
+| OpenAPI spec published (Essential) | `/openapi.json` — OpenAPI 3.1, 6 paths, 6 operations, every one with a unique `operationId` and a description |
+| API schema complexity / function calling | same document — one spec answers all three |
+| Developer resource discoverability | `/developers` page, linked from the homepage and `llms.txt` |
+| Agent when-to-use guidance | "When to use Automancer" section in `/llms.txt` |
+| JSON-LD Person incomplete | `url` and `jobTitle` added. **`sameAs` deliberately omitted** — no genuine public profile exists in the repo, and inventing one would be false structured data about a real person |
+
+**The score still reads 63/100, and that number is stale.** Re-running the CLI
+returned a report with the *identical* `scanned_at` timestamp
+(`2026-08-22T01:18:36.717Z`) — it never re-scanned. Confirmed from the tool
+itself: `--help` says it retrieves the latest report, "scanning the site when
+none exists"; the API is read-only (`POST` returns 405). **A fresh scan can only
+be started from the browser form.**
+
+I am recording this rather than quietly reporting an unchanged score, because an
+unchanged score after a fix reads as "the fix did not work" — a conclusion
+someone would act on, by reverting good work or piling on more changes against a
+stale baseline.
+
+Two findings are deliberately NOT fixed and will keep failing: markdown content
+negotiation with `Vary: Accept` (GitHub Pages cannot do content negotiation or
+custom headers) and brand-name search discoverability (an index outcome).
 
 ## What is still in progress
 
