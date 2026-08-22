@@ -432,9 +432,28 @@ exhausted), not because the repo needs anything.
 
 ## The one thing left undone, and why it matters
 
-**Production still cannot name the revision it serves.** `src/data/build.ts`
-computes `commit` and `commitFull` from `git rev-parse`; nothing renders them —
-`grep -r "$(git rev-parse --short HEAD)" dist/` returns zero hits.
+**CORRECTED 05:25Z — half of this was already done and I had it wrong.**
+Production **does** name the revision it serves. The short SHA is rendered on every
+page inside the proof strip, as `<span>build:</span><b>09f5150</b>`, and the live
+site currently reports exactly the revision at the top of `main`. Twenty-four built
+files carry it.
+
+My earlier claim that `grep -r "$(git rev-parse --short HEAD)" dist/` returns zero
+hits was simply wrong — it returns twenty-four. I confirmed the match is real rather
+than a coincidental collision with an asset hash by checking three other random
+seven-character hex strings, which match nothing, and by reading the surrounding
+markup. The full-length SHA is genuinely absent; only the short one is published.
+
+**What is actually missing is the assertion, not the publishing.** Nothing checks
+that the revision production serves matches the revision that was deployed. Confirmed
+by reading `ops/verify-production.sh`: it contains no revision check, and the only
+matches for "sha" are inside an unrelated word.
+
+So the risk below still stands in full — a failed deploy leaving the old build in
+place would pass all sixteen checks — but the remaining work is smaller and safer
+than this section originally described, and **one of the four traps is void**: the
+"absent field on the introducing deploy" problem cannot occur here, because the field
+is already live.
 
 So if a deploy failed while the previous build kept serving, **every check in
 this repo would pass**: routes 200, the company-number anchor present (the old
