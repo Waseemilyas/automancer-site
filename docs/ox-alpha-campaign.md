@@ -995,3 +995,31 @@ would not appear until the next attempt to publish the site.
 Nothing is broken now — publishing from here is confirmed working. It is worth either
 finishing that branch or removing the working copy, so this repo has only one door
 into its settings.
+
+---
+
+## What "green" means here, and which commit it belongs to
+
+Re-measured at the end rather than quoted from earlier in the night.
+
+**The test numbers, read from the runner rather than searched for.** 112 tests, 112
+passed, **0 failed, 0 skipped, 0 todo**, across 42 groups in 10 files. The skipped and
+todo figures matter: a suite that quietly skipped everything also reports success and
+also exits zero, so "green" and "112 green" are different claims. These came from the
+runner's machine-readable output, not from matching text on screen.
+
+**Which commit that covers.** The run above was made with the working tree clean at the
+commit immediately before this section was added, so it covers every line of code being
+handed over. This section changes only this document.
+
+**Continuous integration.** Every push tonight has its own passing run. Five commits
+have no run of their own, and that is expected rather than a gap: the service runs once
+per *push*, not once per commit, so a commit that never headed a push gets no run. All
+five are ancestors of the current tip, whose run is green, so their content is covered.
+I checked that with a test proven to give both answers — it correctly reports a
+commit that is not on this line as not covered.
+
+**One thing this does not tell you.** A passing run says the checks passed on the code
+at that commit. It does not say the site is up; that is the separate production check,
+which was run by hand after every deploy tonight and passed all sixteen of its checks
+every time.
