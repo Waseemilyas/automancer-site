@@ -57,6 +57,12 @@ tests/assets.test.ts        rot-guard: every file in public/assets/images must
 tests/performance.test.ts   byte budgets per page against the fresh build
                             (total/js/fonts), derived from measured values —
                             method and tables live in docs/PERFORMANCE.md
+tests/contact-errors.test.ts  lead-API error-copy guard: lifts the built contact
+                            page's inline script out of dist/, runs it against
+                            stub DOM + fetch, and drives the submit handler —
+                            no machine code from the intake endpoint may reach
+                            #form-error, on any branch, known code or not.
+                            Negative control: 9ac5d96^ (the shipped defect)
 ```
 
 Page categories (see `tests/support/dist.ts`):
