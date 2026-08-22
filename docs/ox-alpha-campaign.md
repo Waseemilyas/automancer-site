@@ -795,3 +795,76 @@ path unverified, it can make a whole class of defect impossible to find.**
 
 Neither half is wired into the script as a flag yet. Both have been performed manually
 and the results are recorded here.
+
+---
+
+## Late work, 04:10Z to 04:45Z
+
+### The contact form defect now has a test, proven against the real broken file
+
+The one defect this site actually showed to visitors tonight — raw machine codes on the
+contact form, where a person who failed the security check read the words
+"turnstile_failed" — had **no test**. All 104 assertions passed whether the fix was
+present or not, so anyone could have reintroduced it and the repo would have stayed
+green. I only noticed by asking a different question than "do the tests pass": *do the
+tests catch the defects we actually found tonight by other means?* Three of four were
+covered. This one was not.
+
+There are now **112 assertions across 10 files**. The new ones fail if a machine code
+can reach a visitor through any error branch.
+
+**The important part is how it was proved.** The lane was forbidden from inventing a
+broken version, and told to use the genuine defective file from this repo's own history
+— the exact bytes that were served to real people. Seven of eight new assertions fail
+against it, and each failure names the code a visitor would have seen. Restored, the
+full suite is green.
+
+The reason for that rule: a test and a fake defect written by the same author share the
+same blind spots. The author naturally breaks something the test already looks at. Our
+earlier round of "we proved our tests can fail" was exactly that shape, and it is why
+this defect slipped through a suite that had supposedly proved itself.
+
+The lane also found its own test harness was lying: its fake page element stored a raw
+object where a real browser element converts it to text, which turned one case into an
+unhelpful crash instead of a message naming the leak. It fixed the harness rather than
+the assertion.
+
+### Two smaller things found while checking
+
+**Six assertions pass against a completely empty build.** I deliberately broke the
+helper that reads the built site and ran the suite: seven of ten files failed
+immediately, which is correct. The two that survived read the build through a *second,
+separate route* that has no equivalent safety check. Emptying the build entirely, those
+two files still fail overall — so nothing is actually unprotected today — but six of
+their nine individual assertions pass with nothing there at all, because a rule like
+"every page is within its size budget" is trivially satisfied when there are no pages.
+**The protection exists but sits in only one of two doorways.** The fix is one guard in
+`tests/support/perf.ts`, mirroring the one already in `tests/support/dist.ts`. Not done.
+
+**The type checker's summary does not use the same words as its output.** It prints two
+diagnostics labelled "warning" and then reports "0 warnings, 2 hints". Both readings are
+defensible and neither is a bug, but **anyone who gates a build on "zero warnings" will
+pass while warnings are printed on screen.** Behind them are two genuinely unused
+imports left over from an earlier fix, in `src/data/jsonld.ts` and
+`src/pages/api/services.json.ts`. Harmless, worth a two-line cleanup.
+
+### The checking script has now been observed failing, in order, for the right reasons
+
+Recorded above as an open item and now **partly** closed by hand.
+
+Pointed at an address where nothing listens, each check fails in turn, names itself and
+gives the real reason, and does not confuse this with the separate "the machine running
+me is broken" case, which has its own message and its own exit code.
+
+**Corrected before it was believed.** My first attempt looked complete and was not. It
+failed thirteen checks and I nearly recorded that as "every check". A healthy run
+performs **sixteen**. My own time limit had cut the run off partway through the
+fourteenth, so the last three — the homepage wording check, the error-monitoring check
+and the certificate check — were never exercised in the failing direction at all. The
+run never printed its closing summary line, which is the tell I should have looked for
+first. I noticed only by counting the failing checks against a healthy run's passing
+ones.
+
+Worth keeping as its own small rule: **a run that was cut short looks exactly like a run
+that finished, if you only read the failures it did produce.** Check that the thing
+printed its own ending. The rerun with a proper time budget is recorded below.
