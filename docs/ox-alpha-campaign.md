@@ -407,6 +407,80 @@ GitHub release and nothing further.
 
 ---
 
+# HANDOVER STATE — updated 2026-08-22 04:05Z
+
+## Every claim below carries the time it was checked
+
+Nothing is running. Work is paused under an estate-wide memory hold (swap
+exhausted), not because the repo needs anything.
+
+| Claim | Verified at |
+|---|---|
+| `main` = `origin/main` exactly (`1173129e`), tree clean | 03:55Z |
+| No branch of mine is local-only | 03:55Z |
+| 104 assertions, typecheck clean, production build green | 03:22Z |
+| CI + Deploy green | 03:26Z |
+| Production serving the fixed contact form | 03:26Z, with positive + negative controls |
+| Tag/release parity clean (only the annotated baseline lacks a release) | 03:20Z |
+| No listener of mine; no wildcard port of mine | 03:31Z |
+| No orphaned process with cwd under this repo | 04:00Z |
+| No build output written by the killed lane | 04:00Z, `find -newermt` with a probe control |
+| All background monitors stopped | 04:04Z |
+
+**Eleven releases** shipped and published tonight, `v2026.08.21.1` through
+`v2026.08.22.11`, each read back from GitHub after publishing.
+
+## The one thing left undone, and why it matters
+
+**Production still cannot name the revision it serves.** `src/data/build.ts`
+computes `commit` and `commitFull` from `git rev-parse`; nothing renders them —
+`grep -r "$(git rev-parse --short HEAD)" dist/` returns zero hits.
+
+So if a deploy failed while the previous build kept serving, **every check in
+this repo would pass**: routes 200, the company-number anchor present (the old
+build has it too), TLS valid, Sentry DSN present. A stale build is currently
+indistinguishable from a fresh one.
+
+A lane was building this when the memory hold stopped it. It wrote nothing —
+verified by `find`, not by `git status`, which is blind to build output.
+
+**If you pick this up, the danger is the opposite direction.** This check runs in
+the mandatory deploy gate AND the ~58-minute uptime workflow, so a *wrong* check
+fails permanently against a *healthy* site and pages forever, indistinguishable
+from a real outage. Four ways to get that wrong:
+
+1. **Short vs full SHA** — `GITHUB_SHA` is 40 chars, `--short` is 7-8. Compare
+   unnormalised and every healthy deploy fails.
+2. **Absent-field intolerance** — on the deploy that first publishes the field,
+   production is still the OLD build and has no field. Must skip, not fail.
+3. **Field-name mismatch** between what `/api/index.json` emits and what the
+   script reads. Check the emitted JSON, not the code that emits it.
+4. **`"null"` as a string** — `readGit` returns null outside a checkout; the
+   literal string would compare unequal to every real SHA, forever.
+
+## Other open items, deliberately not done
+
+- **`/terms/` publishes no date or version**, unlike `/privacy/`. Characterised
+  in `tests/legal-integrity.test.ts` with both options documented. Not decided —
+  choosing a truthful date for a legal document is a judgement, not a 3am edit.
+- **The is-agentic score of 63/100 is stale.** All five fixable findings are live
+  and individually verified, but their CLI serves a *cached* report and only
+  scans when none exists; the API is read-only. A fresh score needs their browser
+  form. An unchanged score is not evidence the fixes failed.
+- **Two is-agentic checks will keep failing and should** — markdown content
+  negotiation with `Vary: Accept` (GitHub Pages cannot do content negotiation or
+  set headers) and brand-name search discoverability (an index outcome).
+- **The uptime workflow's real interval is ~58 minutes**, not the 30 its cron
+  requests. Measured from consecutive run timestamps. The runbook should say the
+  measured figure.
+- **The Sentry check proves a DSN is *present*, not that monitoring *reaches
+  us*.** A rotated or wrong-project DSN would pass identically. Verifying that
+  needs the expected value, which lives in a CI variable rather than the repo.
+
+---
+
+## Earlier handover (02:50Z), kept for the record
+
 # HANDOVER STATE — updated 2026-08-22 ~02:50Z
 
 ## Everything is landed. Nothing is in flight.
