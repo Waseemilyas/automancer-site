@@ -59,6 +59,36 @@ HOST_PORT=''  # hostname[:port]
 
 FAILED_CHECKS=()
 
+# --- scratch-file lifecycle ----------------------------------------------
+# ALL scratch files live in ONE directory, created up front and removed as a
+# unit by the trap below on EVERY exit path: clean exit, check failures,
+# SIGINT, SIGTERM. Being killed by a signal is a NORMAL death for this
+# script — CI wraps it in `timeout` and workflow timeout-minutes — so
+# "clean up on the way out" cannot live in individual functions: most temp
+# files are created inside COMMAND SUBSTITUTIONS (out=$(need_tmp)), where
+# an `exit` kills only the subshell and the run carries on regardless. The
+# parent owns the one directory name, and the trap reaches it from anywhere.
+# When a signal arrives mid-request, bash runs the trap once the in-flight
+# command returns — bounded by HTTP_TIMEOUT_SECS/POLL_INTERVAL_SECS.
+RUN_TMP_DIR=''
+cleanup() {
+  local rc=$?
+  trap - EXIT INT TERM
+  [[ -z $RUN_TMP_DIR ]] || rm -rf -- "$RUN_TMP_DIR"
+  return "$rc"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+if ! RUN_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/verify-production.XXXXXXXXXX" 2>/dev/null) || [[ -z $RUN_TMP_DIR ]]; then
+  printf '\nFATAL: cannot create a temporary directory in %s.\n' "${TMPDIR:-/tmp}" >&2
+  printf 'This is a problem with THIS MACHINE, not with any site — nothing has been checked.\n' >&2
+  printf 'Check free space AND free inodes (bytes can be plentiful while inodes are gone):\n' >&2
+  printf '  df -h %s\n  df -i %s\n' "${TMPDIR:-/tmp}" "${TMPDIR:-/tmp}" >&2
+  exit 3
+fi
+
 log() { printf '%s\n' "$*"; }
 
 usage() {
@@ -132,10 +162,14 @@ curl_exit_hint() {
   esac
 }
 
-# probe_status <url> <expected-final-status>
-# Follows redirects (bounded), asserts the FINAL status. Prints one line:
-# a success summary on success, or a diagnosis naming URL, expected and
-# Create a temp file, or ABORT THE WHOLE RUN with a clear cause.
+# need_tmp — print the path of a fresh scratch file INSIDE $RUN_TMP_DIR, or
+# abort the whole run with a clear cause.
+#
+# Why files go inside the run directory rather than straight into /tmp:
+# they are created inside command substitutions (out=$(need_tmp)), so no
+# function can be trusted to clean up after itself — an `exit` there kills
+# only the subshell. Cleanup belongs to the parent's EXIT/INT/TERM trap,
+# which removes $RUN_TMP_DIR as a unit (see the lifecycle block above).
 #
 # Why this is not just `mktemp`: if the temp filesystem is out of space or
 # inodes, a bare mktemp returns empty, every redirection then fails, and curl
@@ -145,8 +179,8 @@ curl_exit_hint() {
 # Verified against a real /tmp inode exhaustion on the build box, 2026-08-22.
 need_tmp() {
   local f
-  if ! f=$(mktemp 2>/dev/null) || [[ -z $f ]]; then
-    printf '\nFATAL: cannot create a temporary file in %s.\n' "${TMPDIR:-/tmp}" >&2
+  if ! f=$(mktemp "${RUN_TMP_DIR}/tmp.XXXXXXXX" 2>/dev/null) || [[ -z $f ]]; then
+    printf '\nFATAL: cannot create a temporary file in %s.\n' "$RUN_TMP_DIR" >&2
     printf 'This is a problem with THIS MACHINE, not with %s — the site has not been checked.\n' "$BASE_URL" >&2
     printf 'Check free space and free inodes:  df -h %s ; df -i %s\n' "${TMPDIR:-/tmp}" "${TMPDIR:-/tmp}" >&2
     exit 3
@@ -154,6 +188,9 @@ need_tmp() {
   printf '%s' "$f"
 }
 
+# probe_status <url> <expected-final-status>
+# Follows redirects (bounded), asserts the FINAL status. Prints one line:
+# a success summary on success, or a diagnosis naming URL, expected and
 # actual on failure. Return 0 only when the expectation held.
 probe_status() {
   local url=$1 expected=$2
@@ -478,15 +515,12 @@ check_tls() {
 # inside command substitutions, so an `exit` in one of them kills the subshell
 # and the run carries on regardless. Verified against a real /tmp inode
 # exhaustion on the build box, 2026-08-22.
+#
+# The directory itself is created (and its failure handled) up front, before
+# main; this preflight additionally proves files can be WRITTEN there.
 preflight() {
   local probe
-  if ! probe=$(mktemp 2>/dev/null) || [[ -z $probe ]]; then
-    printf 'FATAL: cannot create a temporary file in %s.\n' "${TMPDIR:-/tmp}" >&2
-    printf 'This is a problem with THIS MACHINE, not with the site — nothing has been checked.\n' >&2
-    printf 'Check free space AND free inodes (bytes can be plentiful while inodes are gone):\n' >&2
-    printf '  df -h %s\n  df -i %s\n' "${TMPDIR:-/tmp}" "${TMPDIR:-/tmp}" >&2
-    exit 3
-  fi
+  probe=$(need_tmp)
   if ! printf 'probe\n' >"$probe" 2>/dev/null; then
     rm -f "$probe"
     printf 'FATAL: %s is not writable — nothing has been checked.\n' "${TMPDIR:-/tmp}" >&2

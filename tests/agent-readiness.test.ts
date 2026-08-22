@@ -163,6 +163,21 @@ describe('markdown twins — every content page also speaks Markdown', () => {
     }
   });
 
+  it('every twin carries real body content below its front matter', () => {
+    // An empty entry body would emit a twin that is front matter and
+    // nothing else — non-empty as a FILE, so the test above passes. The
+    // published surface must carry the entry's actual content.
+    for (const [twinPath] of expectedTwins) {
+      const raw = readDistFile(twinPath)!;
+      const fmMatch = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(raw);
+      expect(fmMatch, `dist/${twinPath}: does not begin with YAML front matter`).toBeTruthy();
+      expect(
+        raw.slice(fmMatch![0].length).trim().length,
+        `dist/${twinPath} has NOTHING below its front matter — an entry was published without content`
+      ).toBeGreaterThan(0);
+    }
+  });
+
   it("every twin's title/description still match its HTML page's <title>/meta description", () => {
     const byRoute = new Map(contentPages().map((p) => [p.route, p]));
     for (const [twinPath, route] of expectedTwins) {
@@ -225,6 +240,35 @@ describe('/llms.txt and /llms-full.txt', () => {
         'llms.txt mentions the 404ing /.well-known/ location BEFORE the servable /agent.json'
       ).toBeLessThan(secondary);
     }
+  });
+
+  it('gives every collection entry a section with non-empty text in llms-full.txt', () => {
+    // `e.body ?? ''` makes an empty entry body indistinguishable from "no
+    // content yet" — the section would still be emitted, headed and all,
+    // with blank text. Sections are delimited by the '=' rule; element 0 is
+    // the file header.
+    const RULE = '='.repeat(72);
+    const THIN = '-'.repeat(72);
+    const sections = llmsFull!.split(`\n${RULE}\n`).slice(1);
+    const entryUrls: string[] = [];
+    for (const section of sections) {
+      const url = /^URL: (\S+)/m.exec(section)?.[1] ?? '';
+      // Collection ENTRY pages only (/work/<slug>/, /field-notes/<slug>/,
+      // abs() appends the trailing slash) — not the two index pages.
+      if (!/^https:\/\/automancer\.uk\/(?:work|field-notes)\/[^/]+\/?$/.test(url)) continue;
+      entryUrls.push(url);
+      const sep = section.indexOf(`\n${THIN}\n`);
+      expect(sep, `llms-full.txt section ${url} has no separator line — generator format changed`).toBeGreaterThanOrEqual(0);
+      expect(
+        section.slice(sep + THIN.length + 2).trim().length,
+        `llms-full.txt section for ${url} is EMPTY — an entry was published without content`
+      ).toBeGreaterThan(0);
+    }
+    // Count guard: if the URL filter above ever matched nothing, every
+    // per-section assertion would be skipped vacuously.
+    expect(entryUrls, 'llms-full.txt lost collection-entry sections entirely').toHaveLength(
+      nonDraftEntries.length
+    );
   });
 });
 
@@ -497,6 +541,27 @@ describe('feeds — /work and /field-notes, RSS 2.0 + JSON Feed 1.1', () => {
       expect(slugs, `${dir}/rss.xml item count disagrees with the collection`).toHaveLength(
         expected.length
       );
+    });
+
+    it(`${dir}/rss.xml gives every item non-empty full content`, () => {
+      // An entry published with an empty body would still emit a complete,
+      // well-formed <item> whose <content:encoded> is an empty CDATA block —
+      // invisible to the count assertions above.
+      const xml = readDistFile(`${dir}/rss.xml`)!;
+      const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
+      // Count guard: zero parsed items would make the loop below vacuous.
+      expect(items.length, `${dir}/rss.xml: parsed ${items.length} <item> blocks`).toBe(
+        expected.length
+      );
+      for (const item of items) {
+        const link = /<link>(.*?)<\/link>/.exec(item[1])?.[1] ?? '(item without <link>)';
+        const content =
+          /<content:encoded[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/.exec(item[1])?.[1];
+        expect(
+          content?.trim().length,
+          `${link}: RSS <content:encoded> is EMPTY — an entry was published without content`
+        ).toBeGreaterThan(0);
+      }
     });
 
     it(`${dir}/feed.json is valid JSON Feed with exactly the non-draft ${collection}`, () => {
