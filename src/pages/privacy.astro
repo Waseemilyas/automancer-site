@@ -1,8 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { business } from '../data/business';
+// The published "last updated" date is written once, in site-content.ts, so
+// /privacy and every machine-readable surface (pages.json, llms-full.txt)
+// show the same value.
+import { staticPages } from '../data/site-content';
 
-const lastUpdated = '17 August 2026';
+const lastUpdated = staticPages.find((p) => p.path === '/privacy/')!.lastUpdated!;
 ---
 
 <BaseLayout

@@ -47,6 +47,29 @@ export const GET: APIRoute = () => {
   );
   lines.push('');
 
+  lines.push('## Machine-readable surfaces for agents');
+  lines.push(
+    'Everything below is public, static, key-free and generated at build time from the same sources as the HTML pages.'
+  );
+  lines.push('');
+  lines.push(`- Full site text: ${business.url}/llms-full.txt — every page's text in one file, each section headed with its URL.`);
+  lines.push(
+    `- Markdown twins: any content page plus ".md" (e.g. ${business.url}/about.md, ${business.url}/services.md, ${business.url}/work/<slug>.md, ${business.url}/field-notes/<slug>.md) — clean Markdown with YAML front matter, Content-Type text/markdown; charset=utf-8.`
+  );
+  lines.push(`- JSON API discovery: ${business.url}/api/index.json — lists every endpoint.`);
+  lines.push(`- Business facts: ${business.url}/api/business.json`);
+  lines.push(`- Services & pricing: ${business.url}/api/services.json`);
+  lines.push(`- Case studies (full text): ${business.url}/api/case-studies.json`);
+  lines.push(`- Field notes (full text): ${business.url}/api/field-notes.json`);
+  lines.push(`- Page inventory: ${business.url}/api/pages.json — every page with title, description, Markdown-twin URL and last-modified.`);
+  lines.push(`- Agent capability manifest: ${business.url}/.well-known/agent.json`);
+  lines.push('- Feeds: /field-notes/rss.xml · /field-notes/feed.json · /work/rss.xml · /work/feed.json (full content, not excerpts).');
+  lines.push(`- Sitemap: ${business.url}/sitemap-index.xml`);
+  lines.push(
+    '- Note: the bodies of /privacy/ and /terms/ are deliberately NOT mirrored in any machine-readable format (transcription drifts). Fetch those canonical HTML URLs for their current text.'
+  );
+  lines.push('');
+
   lines.push('## Site map');
   lines.push(`- ${business.url}/ — Home`);
   lines.push(`- ${business.url}/services — Services & pricing`);

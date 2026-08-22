@@ -14,7 +14,8 @@
     "astro": "astro",
     "check": "astro check",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify": "pnpm run check && pnpm run test"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",

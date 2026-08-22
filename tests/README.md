@@ -7,9 +7,15 @@ a link, drops an alt attribute, skips a heading level, drifts `llms.txt` from
 
 ```sh
 pnpm install
-pnpm run test          # one-shot: builds, then audits dist/
+pnpm run verify        # what CI runs, in CI's order: astro check FIRST, then build + audit
+pnpm run test          # audit only — builds, then audits dist/ (does NOT typecheck)
 pnpm run test:watch    # watch mode (build runs once at startup)
 ```
+
+`pnpm run verify` is the one command to run before pushing: it is exactly
+what CI runs (`check` then `test`). A green `pnpm run test` on its own is
+not a green run — the suite passing does not validate types; `astro check`
+does that, and CI runs it first.
 
 `pnpm test` never needs a manual build first: `tests/global-setup.ts` runs
 `pnpm run build` exactly once per invocation before any test file loads.

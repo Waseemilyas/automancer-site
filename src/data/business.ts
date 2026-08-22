@@ -43,6 +43,11 @@ export const business = {
     'Practical AI and workflow automation for UK small businesses. Cut admin, reduce errors, and improve operations with Automancer.',
 } as const;
 
+/** Display format for a published from-price: £450 · £1,950. */
+export function formatGBP(n: number): string {
+  return '£' + n.toLocaleString('en-GB', { maximumFractionDigits: 0 });
+}
+
 export const services: ServiceOffering[] = [
   {
     name: 'Automation Opportunity Audit',

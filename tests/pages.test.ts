@@ -26,7 +26,10 @@ function metaContent(page: BuiltPage, selector: string): string {
 
 describe('every emitted page', () => {
   it('exists — the suite has pages to audit', () => {
-    expect(pages.length).toBeGreaterThan(5);
+    expect(
+      pages.length,
+      `the build emitted only ${pages.length} content pages (need >5) — if this is 0, dist/ is empty or every page was filtered out, and the entire run audited nothing: its pass proves nothing`
+    ).toBeGreaterThan(5);
   });
 
   it('has exactly one <h1>', () => {
@@ -151,6 +154,15 @@ describe('every emitted page', () => {
       const blocks = page.doc.querySelectorAll('script[type="application/ld+json"]');
       expect(blocks.length, `${page.route}: no JSON-LD block found`).toBeGreaterThan(0);
 
+      // Node registry across the whole page: every @id actually described by
+      // a node, from every block. Property references may point across
+      // blocks (field notes describe their article in a second document),
+      // but must resolve somewhere ON THE PAGE — a dangling @id reference
+      // hands consumers an entity with no facts attached.
+      const describedIds = new Set<string>();
+      const danglingRefs = new Set<string>();
+      const bannedKeys = new Set<string>();
+
       for (const block of blocks) {
         let json: unknown;
         expect(() => {
@@ -161,7 +173,31 @@ describe('every emitted page', () => {
         expect(String(obj['@context']), `${page.route}: JSON-LD @context missing`).toContain(
           'schema.org'
         );
-        expect(obj['@type'], `${page.route}: JSON-LD @type missing`).toBeTruthy();
+
+        // The site emits one schema.org @graph per page (top-level keys are
+        // @context and @graph). A graph document must be a non-empty array
+        // whose every node is typed and carries an absolute https @id.
+        // Documents without @graph keep the classic top-level shape.
+        if ('@graph' in obj) {
+          expect(Array.isArray(obj['@graph']), `${page.route}: @graph must be an array`).toBe(true);
+          expect(
+            obj['@graph'] as unknown[],
+            `${page.route}: @graph present but empty`
+          ).not.toHaveLength(0);
+          for (const node of obj['@graph'] as Record<string, unknown>[]) {
+            expect(
+              node?.['@type'],
+              `${page.route}: node in @graph without a @type`
+            ).toBeTruthy();
+            expect(
+              typeof node?.['@id'] === 'string' && String(node['@id']).startsWith('https://'),
+              `${page.route}: node @id missing or not an absolute https URL (${String(node?.['@id'])})`
+            ).toBe(true);
+            describedIds.add(String(node['@id']));
+          }
+        } else {
+          expect(obj['@type'], `${page.route}: JSON-LD @type missing`).toBeTruthy();
+        }
 
         // Every URL-shaped string inside must be absolute AND https.
         const visit = (node: unknown): void => {
@@ -175,6 +211,53 @@ describe('every emitted page', () => {
           else if (node && typeof node === 'object') Object.values(node).forEach(visit);
         };
         visit(obj);
+
+        // Property values that are bare {@id} objects reference other nodes
+        // (publisher, isPartOf, author, founder…). A typed object carrying
+        // @id describes itself; an untyped one points elsewhere and must
+        // resolve against this page's registry above.
+        const collectRefs = (node: unknown): void => {
+          if (Array.isArray(node)) {
+            node.forEach(collectRefs);
+            return;
+          }
+          if (!node || typeof node !== 'object') return;
+          const rec = node as Record<string, unknown>;
+          if (!('@type' in rec) && typeof rec['@id'] === 'string') {
+            danglingRefs.add(rec['@id'] as string);
+            return;
+          }
+          Object.values(rec).forEach(collectRefs);
+        };
+        collectRefs(obj);
+
+        // This business publishes no review data anywhere. Fabricated
+        // aggregateRating/review markup is a legal liability, not a style
+        // slip, so its presence is always a defect.
+        const findBanned = (node: unknown): void => {
+          if (Array.isArray(node)) {
+            node.forEach(findBanned);
+            return;
+          }
+          if (!node || typeof node !== 'object') return;
+          for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+            if (key === 'aggregateRating' || key === 'review') bannedKeys.add(key);
+            findBanned(value);
+          }
+        };
+        findBanned(obj);
+      }
+
+      expect(
+        bannedKeys,
+        `${page.route}: JSON-LD must never contain aggregateRating/review (no review data exists)`
+      ).toEqual(new Set());
+
+      for (const ref of danglingRefs) {
+        expect(
+          describedIds.has(ref),
+          `${page.route}: dangling @id reference "${ref}" — no node on this page describes it`
+        ).toBe(true);
       }
     }
   });
