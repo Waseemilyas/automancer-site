@@ -26,7 +26,10 @@ function metaContent(page: BuiltPage, selector: string): string {
 
 describe('every emitted page', () => {
   it('exists — the suite has pages to audit', () => {
-    expect(pages.length).toBeGreaterThan(5);
+    expect(
+      pages.length,
+      `the build emitted only ${pages.length} content pages (need >5) — if this is 0, dist/ is empty or every page was filtered out, and the entire run audited nothing: its pass proves nothing`
+    ).toBeGreaterThan(5);
   });
 
   it('has exactly one <h1>', () => {

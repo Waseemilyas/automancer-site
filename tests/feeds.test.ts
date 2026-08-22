@@ -34,12 +34,24 @@ describe('sitemap', () => {
     // Content pages only: no 404 utility page, no redirect stubs.
     const expected = contentPages().map((p) => p.route);
 
-    const missing = expected.filter((r) => !listed.includes(r));
-    const extra = listed.filter((r) => !expected.includes(r));
-
-    expect(missing, 'pages emitted but absent from the sitemap').toEqual([]);
-    expect(extra, 'sitemap lists URLs with no matching page').toEqual([]);
-    expect(listed.length).toBe(expected.length);
+    const listedSet = new Set(listed);
+    const expectedSet = new Set(expected);
+    const symmetricDifference = [
+      ...[...expectedSet]
+        .filter((route) => !listedSet.has(route))
+        .map((route) => `${route} — emitted as a page but MISSING from the sitemap`),
+      ...[...listedSet]
+        .filter((route) => !expectedSet.has(route))
+        .map((route) => `${route} — in the sitemap but NOT emitted as a page`),
+    ];
+    expect(
+      symmetricDifference,
+      'sitemap and emitted pages disagree — every route that is in one and not the other, both directions:'
+    ).toEqual([]);
+    expect(
+      listed.length,
+      `sitemap has ${listed.length} <loc> entries for ${expected.length} distinct expected pages — a route is listed more than once (entries must be unique)`
+    ).toBe(expected.length);
   });
 });
 

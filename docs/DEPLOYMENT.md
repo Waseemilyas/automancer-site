@@ -36,10 +36,14 @@ production ships changes nobody has written up.
    verified against the wrong tree.
 2. `pnpm install` — if the lockfile moved, a green run on the old dependencies
    proves nothing.
-3. `pnpm run check` then `pnpm run test`. The suite builds the site and asserts
-   against `dist/`, so it catches what a visitor or a crawler would actually get.
+3. `pnpm run verify` — one command, identical to what CI runs and in CI's
+   order: the typecheck (`astro check`) first, then the suite. The suite
+   builds the site and asserts against `dist/`, so it catches what a visitor
+   or a crawler would actually get — but it does NOT validate types, so do
+   not stop at `pnpm run test`.
 
-CI (`ci.yml`) runs `check` and `test` on every push and PR independently.
+CI (`ci.yml`) runs `check` and `test` on every push and PR independently —
+i.e. exactly what `pnpm run verify` composes locally.
 
 ## Rollback
 

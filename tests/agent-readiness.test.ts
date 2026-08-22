@@ -9,7 +9,7 @@
  * expired, a feed missing the newest post. Everything here audits the bytes
  * actually emitted into dist/, never the source templates.
  */
-import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DIST, SITE_URL, contentPages, readDistFile, resolveInDist } from './support/dist';
@@ -86,6 +86,33 @@ function assertWellFormedXml(xml: string, label: string): void {
   expect(stack, `${label}: unclosed element(s): ${stack.join(', ')}`).toEqual([]);
 }
 
+/**
+ * Shape gates for JSON parsed off disk (`parsed.get(endpoint)` hands back
+ * `unknown`, and a runtime expect() cannot teach the compiler anything).
+ * Each gate does both jobs at once: it fails with a message naming the
+ * file, what was expected and what was actually found, then its `asserts`
+ * signature narrows the value so TypeScript sees the shape the runtime
+ * just verified — no `!` and no casts, which would trade a clear failure
+ * message for a confusing crash.
+ */
+function describeFound(value: unknown): string {
+  return value === null ? 'null' : Array.isArray(value) ? 'an array' : `type '${typeof value}'`;
+}
+
+function assertJsonObject(value: unknown, file: string): asserts value is Record<string, unknown> {
+  expect(
+    typeof value === 'object' && value !== null && !Array.isArray(value),
+    `dist/${file}: expected a top-level JSON object — got ${describeFound(value)}`
+  ).toBe(true);
+}
+
+function assertJsonArray<T>(value: unknown, file: string, expected: string): asserts value is T[] {
+  expect(
+    Array.isArray(value),
+    `dist/${file}: expected ${expected} to be present as an array — got ${describeFound(value)}`
+  ).toBe(true);
+}
+
 // ─── shared expectations ─────────────────────────────────────────────────────
 
 const nonDraftEntries = contentEntries().filter((e) => !e.draft);
@@ -140,7 +167,7 @@ describe('markdown twins — every content page also speaks Markdown', () => {
       const fm = frontMatterOf(readDistFile(twinPath)!, `dist/${twinPath}`);
       const htmlTitle = page!.doc.querySelector('title')?.text.trim() ?? '';
       const metaDesc =
-        page!.doc.querySelector('meta[name="description"]')?.getAttribute('content').trim() ?? '';
+        page!.doc.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() ?? '';
 
       // <title> is fitted to SERP budget (src/lib/meta.ts) before the brand
         // suffix is appended; the twin carries the unfitted copy. Recomputing
@@ -220,32 +247,38 @@ describe('/api/*.json endpoints', () => {
   });
 
   it('case-studies.json contains exactly the non-draft case studies — no others', () => {
-    const payload = parsed.get('api/case-studies.json') as {
-      count?: number;
-      caseStudies?: Array<{ slug: string }>;
-    };
-    expect(payload?.caseStudies, 'case-studies.json has no caseStudies array').toBeTruthy();
-    const slugs = payload.caseStudies.map((s) => s.slug).sort();
+    const payload = parsed.get('api/case-studies.json');
+    assertJsonObject(payload, 'api/case-studies.json');
+    assertJsonArray<{ slug: string }>(
+      payload['caseStudies'],
+      'api/case-studies.json',
+      '"caseStudies" (a list of {slug} entries)'
+    );
+    const caseStudies = payload['caseStudies'];
+    const slugs = caseStudies.map((s) => s.slug).sort();
     expect(slugs, 'case-studies.json slug set disagrees with the collection').toEqual(
       nonDraftSlugs('case-studies')
     );
-    expect(payload.count, 'case-studies.json count field disagrees with its own array').toBe(
-      payload.caseStudies.length
+    expect(payload['count'], 'case-studies.json count field disagrees with its own array').toBe(
+      caseStudies.length
     );
   });
 
   it('field-notes.json contains exactly the non-draft field notes — no others', () => {
-    const payload = parsed.get('api/field-notes.json') as {
-      count?: number;
-      fieldNotes?: Array<{ slug: string }>;
-    };
-    expect(payload?.fieldNotes, 'field-notes.json has no fieldNotes array').toBeTruthy();
-    const slugs = payload.fieldNotes.map((n) => n.slug).sort();
+    const payload = parsed.get('api/field-notes.json');
+    assertJsonObject(payload, 'api/field-notes.json');
+    assertJsonArray<{ slug: string }>(
+      payload['fieldNotes'],
+      'api/field-notes.json',
+      '"fieldNotes" (a list of {slug} entries)'
+    );
+    const fieldNotes = payload['fieldNotes'];
+    const slugs = fieldNotes.map((n) => n.slug).sort();
     expect(slugs, 'field-notes.json slug set disagrees with the collection').toEqual(
       nonDraftSlugs('field-notes')
     );
-    expect(payload.count, 'field-notes.json count field disagrees with its own array').toBe(
-      payload.fieldNotes.length
+    expect(payload['count'], 'field-notes.json count field disagrees with its own array').toBe(
+      fieldNotes.length
     );
   });
 });
