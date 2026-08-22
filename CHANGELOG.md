@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.22.10 — 22 August 2026
+
+The contact form now gives clearer explanations when a message cannot be sent, including when requests are temporarily limited.
+
+
 ## v2026.08.22.9 — 22 August 2026
 
 Published updates now receive a more complete release check, so empty entries are caught before they appear on the website.
