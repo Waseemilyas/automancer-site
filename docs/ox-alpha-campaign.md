@@ -1023,3 +1023,58 @@ commit that is not on this line as not covered.
 at that commit. It does not say the site is up; that is the separate production check,
 which was run by hand after every deploy tonight and passed all sixteen of its checks
 every time.
+
+---
+
+## Check it yourself rather than trusting the numbers above
+
+Everything above was true when written, on the morning of 22 August 2026. Some of it is
+a *live* fact — tests passing, nothing running, the site healthy — and a live fact
+starts going out of date the moment it is saved. The commands below produce the same
+answers fresh, so they are still worth something long after the numbers are not.
+
+**Does the repository match what is published?**
+```
+git fetch -q origin && git status -sb | head -1
+```
+Wanted: no "ahead" or "behind", and no files listed after it.
+
+**Do the tests still pass, and did they all actually run?**
+```
+pnpm run verify
+```
+Wanted: the runner's own summary, read rather than searched for. At the time of
+writing: 10 files, 112 tests, 112 passed, none failed, none skipped, none pending.
+A suite that skipped every test also exits zero, so read the skipped figure, not just
+the exit code.
+
+**Is the automated check still green for the code in front of you?**
+```
+git diff --name-only <last-green-sha>..HEAD | grep -v '^docs/'
+```
+Empty output means the green still covers every line of code, however many
+documentation commits have landed since. This is better than recording how far behind
+the green is, because that distance changes every time anyone writes anything down.
+
+**Is the live site healthy?**
+```
+ops/verify-production.sh https://automancer.uk
+```
+Wanted: sixteen checks pass and it exits zero. This is the only one of these that says
+anything about the site being *up*; the others are about the code.
+
+**Is the site serving the revision you think it is?**
+```
+curl -s https://automancer.uk/ | grep -o 'build:</span><b>[0-9a-f]*'
+git rev-parse --short HEAD
+```
+Wanted: the same value twice. Nothing enforces this automatically yet — that is the
+open item recorded above.
+
+**Is anything still running that should not be?**
+```
+ps -eo comm= | grep -c chrome
+ls -d /opt/automancer/lanes 2>/dev/null
+```
+Wanted: zero, and no such directory. If either says otherwise, something outlived the
+work that started it.
