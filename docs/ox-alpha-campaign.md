@@ -660,3 +660,104 @@ already reported them clean:
    `2>/dev/null`. Every one returned a clean-looking result.
 7. Review a lane's **diff**, not its report — logic, then numbers, then error
    paths, then scope. Each pass caught something the others missed.
+
+---
+
+## Paths I deliberately kept away from lanes — which are closed, which are holes
+
+Added 2026-08-22 ~04:30Z, near the end of the run.
+
+**Why this section exists.** Every time I told a lane "do not run this", I marked a
+path that the green test suite does not cover. Some of those I then ran myself, so
+they are fine. The rest are genuinely unchecked, and a passing test suite should not
+be read as covering them. This separates the two.
+
+I found the first gap by searching this document for the names of the things I did
+not run, rather than by trying to remember. Three of them appeared nowhere in it.
+
+### Closed — I forbade the lane and then did it myself
+
+| Path | Who closed it, and when |
+| --- | --- |
+| Deploying, tagging and publishing releases | Me, eleven times through the night, each with a direct check against the live site afterwards. |
+| The production checking script | Me. Lanes were barred from editing it so it could not drift under them. |
+| Browser and image-rendering work | Me, on 2026-08-22 around 02:00Z. I installed the browser library and generated a real 1200x630 preview image end to end, then confirmed the browser process had exited. |
+
+The image-rendering one is worth noting: **it was closed hours ago and this document
+never said so.** Anyone reading the handover would have had no way to know.
+
+### Open — nobody ran these, and they are the actual holes
+
+**1. The uptime monitor has never once reported a problem.**
+It has run three times and said "site is up" three times. That is not evidence it
+works. A monitor that has only ever returned one of its two answers has been half
+observed. I closed the equivalent gap in the underlying script tonight (below), but
+not in the scheduled job that runs it.
+
+**2. The uptime monitor has no step that tells anyone.**
+The job runs the checking script and stops. If the site goes down, the workflow turns
+red and that is all that happens. Whether an email actually reaches Waseem depends on
+GitHub's default notification behaviour, which I have not verified and cannot verify
+without breaking production on purpose. **Treat site monitoring as unconfirmed until
+someone checks that a failure reaches a human.**
+
+**3. The rollback path has never been exercised.** It is written down in this document
+and has never been run.
+
+**4. The site still cannot tell you which version it is serving.** Unchanged from the
+earlier entry. A failed deploy that leaves the previous build in place would pass every
+check I have.
+
+**5. The terms page has no "last updated" date.** Deliberately left. Choosing a truthful
+date for a legal document is a human decision, not mine.
+
+### Closed tonight: the production checking script now proves it can fail
+
+Until tonight that script had only ever been seen passing against a healthy site, plus
+once failing for the wrong reason (a fault on the machine running it, not the site).
+So its ability to correctly report a real outage was never observed.
+
+I pointed it at an address where nothing is listening. Every check fails, in order,
+with an accurate reason — "connection refused" — and it does not confuse this with the
+machine-broken case it also guards against. Rejecting an insecure address is also
+confirmed working, with its own distinct exit code.
+
+This costs nothing and touches no production. It is worth repeating whenever that
+script changes.
+
+### Two things found while doing the above
+
+**Automated dependency updates have been failing for ten days, and it is noise rather
+than a risk.** Three failed runs, on 12 and 17 August, all on the same package. I
+checked before reporting it as a security problem, and it is not one: the version
+actually installed is well past the point where the known issue was fixed, and a full
+audit reports zero vulnerabilities of any severity. The update job cannot do anything
+useful because the package is pulled in indirectly by three other tools. **Low
+priority, but it should either be silenced or fixed, because a job that always fails
+trains everyone to ignore it.**
+
+**One of my own checks tonight gave a clean answer that was wrong.** I asked GitHub for
+the last 40 workflow runs and got back "no failures ever". The full history is 145 runs
+and contains eight. My sample was simply too small to reach them, and nothing in the
+result said so. This is the same false-all-clear shape recorded elsewhere in this
+document, and I walked into it while specifically hunting for it.
+
+### Re-checked against the sharper question: did I run it against the same thing a lane would have?
+
+Running a path myself only closes it if I ran it against **the object the lane would
+have touched**, not merely against something similar.
+
+- **Deploys, tags and releases** — same object exactly. I deployed to the live site
+  eleven times. Closed.
+- **Browser and image rendering** — same object exactly. I rendered the real template
+  at the real output size and got a real image out. Confirmed again at 04:35Z by
+  counting browser processes rather than trusting the "closed" message the tool
+  prints: zero running, no leftover profile directories. Closed.
+- **The production checking script** — same target, **different machine**, and that
+  distinction matters here. I ran it from this server. In normal operation it runs on
+  GitHub's machines. The one serious bug it has had all night was caused by the
+  machine it was running on, not by the site, so "it works here" is not by itself
+  evidence it works there. What closes it is separate: that same script has now run to
+  success on GitHub's machines twenty-one times tonight, across eighteen deploys and
+  three scheduled checks. Closed, but by the second piece of evidence rather than the
+  first.
