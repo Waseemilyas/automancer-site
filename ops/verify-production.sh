@@ -404,6 +404,37 @@ check_homepage_anchor() {
   rm -f "$BODY_FILE"
 }
 
+# Error monitoring is a SETUP condition, and setup conditions must be loud.
+#
+# src/scripts/sentry.ts initialises only when `PROD && dsn`. The DSN comes from
+# a CI repository variable. If that variable is ever unset, renamed, or lost in
+# a workflow edit, the site builds green, deploys green, and error monitoring is
+# simply OFF — with nothing anywhere reporting it. A missing DSN is a condition
+# of OUR SETUP, not of the world, and it is the only kind a human can fix.
+#
+# Checked here rather than in the test suite because the suite builds WITHOUT a
+# DSN (correctly — dev, preview and test must not consume the production error
+# budget), so only production can answer this.
+check_sentry_live() {
+  local url="${BASE_URL}/"
+  fetch_body "$url" || return 1
+  local bundle
+  bundle=$(grep -oE '/_astro/[^"]+\.js' "$BODY_FILE" | head -1)
+  rm -f "$BODY_FILE"
+  if [[ -z $bundle ]]; then
+    printf 'could not find a /_astro/*.js bundle on %s — the page did not render as expected\n' "$url"
+    return 1
+  fi
+  fetch_body "${BASE_URL}${bundle}" || return 1
+  if ! grep -qE 'ingest\.(de\.)?sentry\.io|o[0-9]+\.ingest' "$BODY_FILE"; then
+    printf 'bundle %s contains NO Sentry ingest DSN — error monitoring is OFF in production. The PUBLIC_AUT_SENTRY_WEB_DSN repository variable is probably unset or renamed; the build and deploy both succeed without it\n' "$bundle"
+    rm -f "$BODY_FILE"
+    return 1
+  fi
+  printf 'bundle %s carries a Sentry ingest DSN — error monitoring is live\n' "$bundle"
+  rm -f "$BODY_FILE"
+}
+
 check_tls() {
   # -verify_return_error makes s_client exit non-zero unless the presented
   # chain verifies against the system trust store (expiry, wrong host and
@@ -484,6 +515,7 @@ main() {
   if ! poll_check "${AGENT_MANIFEST_PATH} answers 200 and parses as JSON" check_agent_manifest; then :; fi
   if ! poll_check "${SECURITY_TXT_PATH} answers 200 and satisfies RFC 9116" check_security_txt; then :; fi
   if ! poll_check "homepage contains structural anchor \"${HOMEPAGE_ANCHOR}\"" check_homepage_anchor; then :; fi
+  if ! poll_check "error monitoring is live (Sentry DSN present in the bundle)" check_sentry_live; then :; fi
   if ! poll_check "TLS certificate valid and expires >${TLS_MIN_DAYS} days out" check_tls; then :; fi
 
   log ""
