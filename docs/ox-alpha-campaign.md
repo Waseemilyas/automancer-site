@@ -378,3 +378,115 @@ The one thing that *does* reach the outside world as a side effect is
 registered under a client `repoRoots`. This repo is not, confirmed from the
 gate condition and from the run output, so cutting a release here publishes a
 GitHub release and nothing further.
+
+---
+
+# HANDOVER STATE — written 2026-08-22 ~01:40Z, before compaction
+
+## Landed tonight, with SHAs
+
+All on `main`, released, pushed, and verified against the **live site**. Local is
+`0 0` with origin at every checkpoint.
+
+| SHA | What |
+|---|---|
+| `6312caa` | vitest suite over the production build, from zero, plus `ci.yml` |
+| `d412e77` | nine real a11y/SEO defects the suite exposed, fixed at source |
+| `23e45c0` | release `v2026.08.21.1` |
+| `2c13c4b` | release `v2026.08.21.2` — Vitest 4 removed `poolOptions`/`minWorkers`; that turned CI red and this fixed it |
+| `4f2e4a8` | **merge:** agent-readiness surface (19 md twins, 6 JSON endpoints, feeds, llms-full, JSON-LD `@graph`, 404 rebuild) |
+| `776eea0` | **merge:** post-deploy production verification, scheduled uptime, 14 dead assets pruned |
+| `3972692` | TLS threshold measured (14 → 21) instead of guessed |
+| `60fa1b5` | `/agent.json` + `/security.txt` served from paths that resolve — was a live 404 |
+| `b1f1b3b` | release `v2026.08.22.4` |
+
+Releases `v2026.08.21.1`, `.2`, `v2026.08.22.1`–`.4` all **published and read back
+from GitHub**. Only `v2026.08.08.1` has a tag without a release, and that is
+correct — its annotation says it is the pre-release baseline.
+
+## In flight right now — THREE LANES
+
+Each in its **own git common dir** (one lane per common dir — two clones and a
+worktree) with **disjoint file scopes**. All three were given the placeholder
+`PUBLIC_AUT_SENTRY_WEB_DSN=""` verbatim and told to verify with `pnpm run
+verify`, not `pnpm run test`.
+
+| Lane | Where | Told to do | Scope it must stay inside |
+|---|---|---|---|
+| `design2` | `../automancer-site-design` (clone, branch `design`) | Visual/craft pass on the existing "Grimoire Terminal" design, following `~/.agents/skills/impeccable`. Browser work on **omarchy**, reap verified by diffing session dirs — `agent-browser close` lies. No copy changes, no new deps, no new fonts. | `src/styles/`, `src/components/`, `src/layouts/`, page markup |
+| `score` | `../automancer-site-verify` (clone, `main`) | The eight real is-agentic failures: OpenAPI 3.1 at `/openapi.json` generated from the same source as the endpoints, a `/developers` page, when-to-use section in llms.txt, `url`/`jobTitle` on the Person node. **Explicitly told NOT to fake** the `Accept: text/markdown` + `Vary` check — Pages cannot do content negotiation. | `src/pages/`, `src/data/`, `docs/`, `tests/` |
+| `perf` | `../automancer-site-agentready` (worktree, branch `perf`) | Measure real payload per page into `docs/PERFORMANCE.md`, then enforce budgets **derived from measurements plus headroom**, with the measured value and date in a comment. Prove the budget test can fail. | `tests/`, `astro.config.mjs`, `public/assets/`, `docs/` |
+
+**Uncommitted:** main checkout is clean. The three lanes' trees are theirs; do not
+commit them until each lane exits and its diff is reviewed.
+
+## Next three things, in order
+
+1. **Merge the three lanes as they finish** — one at a time, `pnpm run verify`
+   green before each merge, then release, push, and **verify from production**,
+   because merging here IS deploying (production tracks `main` in ~40s).
+2. **Re-scan with `npx is-agentic automancer.uk`** after the `score` lane deploys,
+   and report the delta from the measured 63/100 — not a claimed improvement.
+3. **Add a cleanup trap to `ops/verify-production.sh`.** It `rm -f`s its temp
+   files on the normal and failure paths but NOT on SIGTERM, which is how
+   `timeout` and CI's `timeout-minutes` kill it. Details in the post-lane
+   checklist in my scratchpad; needs `trap ... EXIT INT TERM`.
+
+## Decisions I would not re-derive from the code
+
+- **`/.well-known/` cannot work on this host.** GitHub Pages serves no
+  dot-prefixed path — `/.nojekyll` itself 404s while every non-dot path from the
+  same build returns 200. `.nojekyll` did **not** fix it. That is why the
+  canonical copies live at `/agent.json` and `/security.txt`, with the
+  `.well-known` routes still emitted for hosts that do serve them.
+- **Legal pages are deliberately not mirrored.** `/privacy` and `/terms` appear
+  in machine-readable surfaces as metadata plus a pointer only. A transcribed
+  compliance page drifts silently, and the privacy notice changed upstream within
+  the week.
+- **`TLS_MIN_DAYS = 21`, measured.** Cert is Let's Encrypt, 89-day life, renews at
+  ~29 days out. A threshold at or above 29 fires every renewal cycle; 14 leaves a
+  failed renewal silent for a fortnight. 21 sits below the renewal window and
+  surfaces a failure within a week.
+- **CI is the authoritative runtime.** There is no production Node process — the
+  site is static files, so the only Node that runs is the build's, which is CI's
+  Node 22. This box runs 24, so a green local run is evidence from a runtime CI
+  never executes.
+
+## Deliberately NOT doing
+
+- **Not faking the markdown content-negotiation check.** It is an is-agentic
+  ESSENTIAL failure and it will keep failing while we are on GitHub Pages, which
+  cannot do content negotiation or set `Vary`. Honest failure beats a fake pass.
+- **Not chasing brand-name search discoverability.** It is a search-index
+  outcome, not a code change.
+- **Not adding external uptime monitoring.** The scheduled workflow covers it at
+  zero cost; a third-party vantage point would mean a paid account, and spend is
+  gated.
+- **Not deleting the two stray `/tmp/tmp.*` files.** I cannot prove they are
+  mine, and one is a 0-byte file that could be another agent's live lock.
+
+## CADENCE — the routines that must not quietly stop
+
+Run these **every cycle**, not from memory — several came back dirty after I had
+already reported them clean:
+
+1. `git fetch -q origin && git rev-list --left-right --count origin/main...main`
+   → expect `0 0`. Caught a stranded commit once already.
+2. Tag/release parity: `git ls-remote --tags origin` vs `gh release list`. Caught
+   **two unpublished releases** after I had checked clean twice. `release`
+   followed by a tag push does **not** publish; `publish` must be re-run.
+3. Lane health **by cwd or `--dir`, never by matching command lines** — a lane
+   brief contains the words you are grepping for. Zombie `git` child mapped by
+   PPID confirms a victim; its absence proves nothing.
+4. After every deploy, verify from **production**, with a positive control (a
+   path that must be 200) and a negative control (a path that must be 404).
+   Otherwise a failed fetch reads identically to a pass.
+5. `oxboard notices` and `oxboard log` at the start of each cycle; `oxboard
+   claim` before reporting anything to the lead.
+6. **Before believing any check that returns "nothing found", point it at
+   something known-bad.** Four of my own checks were silently broken tonight —
+   `bfs` rejecting `-newermt`, `ugrep` rejecting `.{0,45}`, a scope regex
+   anchored with `$`, and a `find` whose error I had suppressed with
+   `2>/dev/null`. Every one returned a clean-looking result.
+7. Review a lane's **diff**, not its report — logic, then numbers, then error
+   paths, then scope. Each pass caught something the others missed.
