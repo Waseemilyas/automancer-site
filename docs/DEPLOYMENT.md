@@ -111,3 +111,30 @@ Failures surface as red runs (GitHub notifies maintainers of failing
 scheduled workflows by email). There is no dedicated pager or external
 multi-region vantage point — if monitoring needs to survive GitHub itself
 being unable to see the site, that remains outstanding work.
+
+## Sentry, and how it fails silently
+
+The build reads `PUBLIC_AUT_SENTRY_WEB_DSN`, injected by CI from a repository
+*variable* — not a secret. A Sentry DSN identifies a project; it is not a
+credential. `src/scripts/sentry.ts` initialises only when `PROD && dsn`, which
+has two consequences:
+
+- **The build never needs a real credential.** Without the variable it builds
+  fine and Sentry stays inert. That is correct for dev, preview and test, and
+  it is why a lane given a bare "run the build" instruction has no reason to go
+  looking for secrets.
+- **In production that same guard fails silently.** If the variable is ever
+  unset or renamed, the site builds green, deploys green, and error monitoring
+  is simply off. Nothing anywhere reports it.
+
+Verified live 2026-08-22: the deployed bundle contains a real ingest DSN, so
+monitoring is genuinely active. To re-check:
+
+```bash
+curl -s https://automancer.uk/ | grep -c 'Automancer'          # positive control first
+js=$(curl -s https://automancer.uk/ | grep -oE '/_astro/[^"]+\.js' | head -1)
+curl -s "https://automancer.uk$js" | grep -cE 'ingest\.(de\.)?sentry\.io'
+```
+
+The positive control matters: without it, a failed fetch returns zero and reads
+identically to "monitoring is off".
