@@ -60,29 +60,22 @@ const { title, description, image, ogType = 'website', schema = [], pageType } =
          the Turnstile script on the contact page, etc. -->
     <slot name="head" />
 
-    <!-- UTM capture: whatever page a campaign lands on, persist utm_* from
-         the URL for the visit so the contact form can attribute the lead
-         (src/pages/contact.astro includes them in the /api/lead payload).
-         First touch wins; sessionStorage only — nothing leaves the browser
-         until the visitor actually submits the form. -->
-    <script is:inline>
-      (function () {
-        try {
-          var params = new URLSearchParams(location.search);
-          var source = params.get('utm_source') || '';
-          var medium = params.get('utm_medium') || '';
-          var campaign = params.get('utm_campaign') || '';
-          if ((source || medium || campaign) && !sessionStorage.getItem('aut-utm')) {
-            sessionStorage.setItem(
-              'aut-utm',
-              JSON.stringify({ utmSource: source, utmMedium: medium, utmCampaign: campaign })
-            );
-          }
-        } catch (e) {
-          /* storage unavailable (private mode etc.) — attribution is best-effort */
-        }
-      })();
-    </script>
+    {/*
+      NO browser-storage writes here, deliberately. A UTM-capture snippet used
+      to persist utm_* from the landing URL for the contact form to attribute
+      the lead. Removed 2026-08-22 (AUT-6414, Waseem's call as data
+      controller): /privacy tells visitors this site "stores nothing in your
+      browser", and campaign attribution is not strictly necessary under PECR,
+      so the snippet made that claim false and was never consented to. Keeping
+      the claim literally true was judged worth more than the attribution.
+      If campaign attribution is ever wanted again it needs a consent
+      mechanism first — do not reinstate it as a bare snippet.
+      tests/no-browser-storage.test.ts enforces this.
+
+      This is a server-side comment on purpose: an HTML comment would ship the
+      note to every page and put the very strings that test greps for back
+      into the output.
+    */}
 
     <!-- Production-only browser error monitoring. The module itself requires
          PUBLIC_AUT_SENTRY_WEB_DSN, so preview/dev builds never emit events. -->

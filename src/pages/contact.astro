@@ -5,15 +5,17 @@
 // NO third-party form processors. Posts application/json to ENDPOINT_URL.
 //
 // Contract:
-//   Body { name, email, company?, message, turnstileToken, website(honeypot),
-//          utmSource?, utmMedium?, utmCampaign? } — utm_* persisted from the
-//   landing URL by BaseLayout's sessionStorage snippet (first touch wins).
+//   Body { name, email, company?, message, turnstileToken, website(honeypot) }.
 //   200 {ok:true}; every other status carries a MACHINE CODE in `error`.
 //   The visitor-facing wording for each code lives in LEAD_ERROR_COPY
 //   (src/config/site.ts) — that map is the documentation. Do not list codes
 //   here as well; a transcribed contract nothing compares goes stale silently,
 //   which is exactly what happened to the list that used to be on this line.
 //   Content-Type application/json · no credentials.
+//   The endpoint also accepts utmSource?/utmMedium?/utmCampaign?, and this page
+//   used to send them. It no longer does — the capture was removed 2026-08-22
+//   (AUT-6414) to keep /privacy's "stores nothing in your browser" true. The
+//   reasoning is in BaseLayout.astro; do not re-add these without reading it.
 //   NOTE: the API CORS origin is locked to https://automancer.uk, so live
 //   submissions only succeed from production. Local dev/preview will hit a
 //   CORS wall and fall through to the mailto fallback (expected).
@@ -246,26 +248,6 @@ const steps = [
           turnstileToken: token,
           website: honeypot
         };
-
-        // Campaign attribution: utm_* params persisted from whatever page
-        // the visit landed on (BaseLayout sessionStorage snippet), with the
-        // current URL as a fallback. Best-effort — never blocks the send.
-        try {
-          var utm = null;
-          var stored = sessionStorage.getItem('aut-utm');
-          if (stored) utm = JSON.parse(stored);
-          if (!utm) {
-            var qs = new URLSearchParams(location.search);
-            utm = {
-              utmSource: qs.get('utm_source') || '',
-              utmMedium: qs.get('utm_medium') || '',
-              utmCampaign: qs.get('utm_campaign') || ''
-            };
-          }
-          if (utm.utmSource) payload.utmSource = String(utm.utmSource).slice(0, 120);
-          if (utm.utmMedium) payload.utmMedium = String(utm.utmMedium).slice(0, 120);
-          if (utm.utmCampaign) payload.utmCampaign = String(utm.utmCampaign).slice(0, 120);
-        } catch (e) {}
 
         submitBtn.disabled = true;
         submitBtn.querySelector('span').textContent = 'Sending…';

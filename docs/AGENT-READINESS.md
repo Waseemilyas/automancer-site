@@ -89,7 +89,7 @@ declared them.
 
 | Check | Status | Implemented in | Notes |
 | --- | --- | --- | --- |
-| Server-rendered content | Done | `astro build` static output (`output: 'static'`) in `astro.config.mjs` | Every page is complete HTML at deploy time. No client-side rendering of content anywhere; the only runtime JS is the contact form, UTM capture, Sentry and small visual effects. |
+| Server-rendered content | Done | `astro build` static output (`output: 'static'`) in `astro.config.mjs` | Every page is complete HTML at deploy time. No client-side rendering of content anywhere; the only runtime JS is the contact form, Sentry and small visual effects. |
 | Every content URL serves real HTML | Done | `src/pages/**` | 22 pages built: home, services, work index + 4 case studies, field-notes index + 9 articles, about, contact, privacy, terms, 404, plus legacy `.html` meta-refresh pages. |
 | Correct HTTP status codes | Done / verified live | `astro.config.mjs` redirects | GitHub Pages serves `200` for every emitted page and a real `404` via `dist/404.html`. Legacy `/services.html` etc. return a real `301`, then a `200` meta-refresh page that Astro emits with a canonical link, `robots noindex`, and a real anchor a no-JS agent can follow. **Verified against live production on 2026-08-21; deliberately left untouched.** |
 | Canonical URLs | Done | `src/components/SEO.astro` | `<link rel="canonical">` on every page, absolute URLs normalised through `src/data/urls.ts` so HTML, JSON-LD, APIs, twins and feeds cannot disagree. |
