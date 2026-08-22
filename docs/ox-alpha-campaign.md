@@ -257,3 +257,22 @@ it unattended at midnight buys nothing: no visitor is waiting for it, and the
 downside is slow and invisible.
 
 This is a judgement, not a blocker. The capability is there and verified.
+
+## Does a merge to main reach users? YES.
+
+**`automancer-site` auto-deploys from `main`.** Push → GitHub Actions → Pages,
+live in roughly 40 seconds. Production tracks `main`; it is never behind it.
+
+So **merging is deploying** in this repo, and every merge tonight has been held
+to the full deploy conditions rather than the lower bar a merge usually gets:
+green before push, verified from the live site afterwards, rollback recorded in
+`docs/DEPLOYMENT.md` beforehand, and watched after landing.
+
+Two structural consequences worth writing down, because they are properties of
+the mechanism rather than of anyone's discipline:
+
+- The build happens **on GitHub from a committed SHA**, on a machine that has
+  never seen this working tree. A lane's half-written file therefore cannot
+  reach production, even mid-write.
+- Nothing on this box executes from the working tree — no systemd unit, no cron,
+  no watcher references this repo. Checked, not assumed.
