@@ -2,7 +2,15 @@
 
 ## v2026.08.21.2 — 21 August 2026
 
-Social sharing previews now stay reliable when the website’s images are regenerated.
+Internal tooling only — nothing on the website changes for visitors.
+
+- The script that regenerates the social-sharing preview image now refuses bad
+  arguments before it does anything, so it can no longer overwrite the live
+  image by mistake, and it always shuts the browser down afterwards. The script
+  had also stopped being runnable at all; that is fixed.
+- Note: only the argument checks were exercised. A successful end-to-end image
+  render has not been run, because the browser library it needs is not installed
+  on the build machine.
 
 
 ## v2026.08.21.1 — 21 August 2026
