@@ -973,3 +973,25 @@ not contradicting itself. But "no scanner" is not "no secrets", and I have not s
 
 **The error-monitoring check proves a monitoring key is present, not that alerts reach
 anyone.** A rotated or wrong-project key would pass identically.
+
+### One thing on this repo that is not mine, found while checking my own work
+
+There is a second working copy of this repository attached to it, on a branch called
+`agent/AUT-6645`, under `/opt/automancer/worktrees/`. It is idle — nothing is running
+in it — its last commit is from 21 August, and it has one uncommitted file.
+
+**I have not touched it.** It is not my work and it may be a parked branch someone
+intends to come back to.
+
+The reason it is worth writing down: **it shares this repository's configuration.**
+That is not a guess — its configuration path resolves to this repo's own
+`.git/config`, and it is a genuine second working copy by all three independent
+signals, not merely by living in a directory with a suggestive name. So a change made
+to git settings inside it takes effect *here*. Tonight a fleet-wide instruction went
+out that, if run in a working copy of that kind, disables pushing from the main
+checkout. It would have applied to this repo through that directory, and the symptom
+would not appear until the next attempt to publish the site.
+
+Nothing is broken now — publishing from here is confirmed working. It is worth either
+finishing that branch or removing the working copy, so this repo has only one door
+into its settings.
