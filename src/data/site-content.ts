@@ -125,7 +125,7 @@ export const staticPages: PageMeta[] = [
     description: 'How Automancer Ltd handles your data — in plain English. What we collect, why, where it lives, who touches it, and the rights you have over it.',
     type: 'PrivacyPolicy',
     // Single source for the date shown on /privacy itself; imported there.
-    lastUpdated: '17 August 2026',
+    lastUpdated: '22 August 2026',
     legalNoMirror: true,
   },
   { path: '/terms/', title: 'Website Terms', description: 'Website terms of use for Automancer Ltd — how you may use this site, our liability position, and the intellectual property in it.', type: 'WebPage', legalNoMirror: true },

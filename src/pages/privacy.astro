@@ -99,10 +99,15 @@ const lastUpdated = staticPages.find((p) => p.path === '/privacy/')!.lastUpdated
         Almost nothing. This site is static — there's no analytics, no tracking pixels, no
         advertising tags, no "people who viewed this also viewed" machinery. Our fonts are served
         from our own site, so your browser doesn't call out to Google or anyone else to load them.
-        The one thing we can't avoid: the site is hosted on GitHub Pages, and like any web host,
+        Two things we can't avoid. First, the site is hosted on GitHub Pages, and like any web host,
         GitHub's servers keep standard technical logs (including visitor IP addresses) to serve the
-        pages and keep the service secure. That's GitHub's infrastructure doing its job, not us
-        watching you.
+        pages and keep the service secure. Second, we run error monitoring (Sentry) so we find out
+        when a page breaks. It stays quiet unless something actually goes wrong: if a script on the
+        page throws an error, it sends us the technical details of that error — what broke, where,
+        and which browser it happened in. We've turned off the settings that would attach personal
+        data such as your IP address, and it does no performance tracking and no session recording.
+        Neither of these is us watching you — it's the site staying up, and us noticing when it
+        doesn't.
       </p>
 
       <h2>Our lawful bases</h2>
@@ -159,6 +164,12 @@ const lastUpdated = staticPages.find((p) => p.path === '/privacy/')!.lastUpdated
         <li>
           <strong>GitHub (Pages)</strong> — hosts and serves this website. Its servers hold standard
           technical access logs, as any web host does.
+        </li>
+        <li>
+          <strong>Sentry</strong> — error monitoring. When a script on the site fails in your
+          browser, Sentry receives the technical details of that failure so we can fix it. We've
+          configured it not to collect personal data, with no performance tracking and no session
+          replay, and the data is processed on Sentry's EU (Germany) infrastructure.
         </li>
       </ul>
 

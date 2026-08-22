@@ -24,9 +24,13 @@ import { allHtmlFiles } from './support/dist';
 
 /** Text of the legal pages as published, hashed 2026-08-22. */
 const PINNED: Record<string, { sha256: string; lastUpdated: string | null }> = {
+  // Moved 2026-08-22 for a SUBSTANTIVE change (AUT-6414), so the date moved too:
+  // Sentry added to the processor list, and the "when you just browse" section
+  // corrected — it claimed GitHub Pages was the only third party we couldn't
+  // avoid, which was untrue while Sentry loaded on every page.
   '/privacy/': {
-    sha256: '7a46da19da9ed23dfb61882d987ff4f898cc4041fd0499b0259c1a9d6fa9e845',
-    lastUpdated: '17 August 2026',
+    sha256: '313ee801717915eef21037208ecc7ea61643d61b385135204d6531fee5331675',
+    lastUpdated: '22 August 2026',
   },
   // CHARACTERISING, NOT ENDORSING: /terms/ publishes NO date and no version.
   // src/data/site-content.ts records no lastUpdated for it, unlike /privacy/.
