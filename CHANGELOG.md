@@ -1,5 +1,15 @@
 # Release notes
 
+## v2026.08.22.11 — 22 August 2026
+
+Contact form errors are now clearer and more helpful for visitors.
+
+### Improvements
+
+- Visitors now see plain-English guidance when a contact form submission cannot be completed.
+- Unexpected submission errors include a direct email option, so visitors can still get in touch.
+
+
 ## v2026.08.22.10 — 22 August 2026
 
 The contact form now gives clearer explanations when a message cannot be sent, including when requests are temporarily limited.
