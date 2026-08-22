@@ -41,6 +41,16 @@ const agentManifestBody = {
   // Everything an agent can fetch without JavaScript or credentials.
   machineReadable: {
     discoveryDocument: { url: `${business.url}/api/index.json`, description: 'Lists every JSON endpoint below with descriptions.' },
+    developerDocs: {
+      url: abs('/developers'),
+      description: 'Human-readable guide to every endpoint, Markdown twin, feed and manifest, with example requests.',
+    },
+    openApiSpec: {
+      url: abs('/openapi.json'),
+      specVersion: '3.1.0',
+      description:
+        'OpenAPI 3.1 specification of every JSON endpoint — unique operationIds and typed response schemas, suitable for LLM function calling.',
+    },
     endpoints: [
       api('/api/business.json', 'Canonical business facts: names, registration, address, contact, areas served.'),
       api('/api/services.json', 'Service offerings with published from-prices (GBP) and stable ids.'),

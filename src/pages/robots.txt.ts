@@ -52,11 +52,13 @@ export const GET: APIRoute = () => {
     `Sitemap: ${business.url}/sitemap-index.xml`,
     '',
     '# Machine-readable surfaces for agents:',
+    `#   Developer docs ............... ${business.url}/developers`,
     `#   Plain-text site guide ........ ${business.url}/llms.txt`,
     `#   Full site text in one file ... ${business.url}/llms-full.txt`,
     `#   Agent capability manifest .... ${business.url}/agent.json`,
     `#     (canonical copy; also emitted at /.well-known/agent.json for hosts that serve dot-paths)`,
     `#   API discovery document ....... ${business.url}/api/index.json`,
+    `#   OpenAPI 3.1 spec ............. ${business.url}/openapi.json`,
     `#   Markdown twins ............... any page + ".md" (e.g. ${business.url}/about.md)`,
     `#   Feeds ........................ /field-notes/rss.xml · /field-notes/feed.json · /work/rss.xml · /work/feed.json`,
     ''
