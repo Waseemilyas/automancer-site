@@ -1,5 +1,18 @@
 # Release notes
 
+## v2026.08.22.1 — 22 August 2026
+
+This release makes the site easier to explore, recover from errors, and access in different reading tools.
+
+### Improvements
+
+- Site information is now available in a consistent text format, making it easier to read and reuse across different tools.
+
+### Fixes
+
+- The page-not-found screen now helps visitors get back on track. It links to every main section, recent field notes, case studies, and contact options.
+
+
 ## v2026.08.21.2 — 21 August 2026
 
 Internal tooling only — nothing on the website changes for visitors.
