@@ -25,7 +25,12 @@ const MEASURED_TOTAL: Record<string, number> = {
   '/': 202837,
   '/404/': 199156,
   '/about/': 199490,
-  '/contact/': 204944,
+  // Re-measured 2026-08-22 03:20Z after adding the LEAD_ERROR_COPY map and the
+  // copyFor() helper to the inline contact script (+4596 B). Deliberate growth
+  // on the conversion path: it is what stops a visitor being shown a raw
+  // machine code like "turnstile_failed". Re-derived with
+  // `node tests/support/perf-cli.ts --csv`, not adjusted to make the test pass.
+  '/contact/': 209540,
   // Added 2026-08-22 after the developer-surface lane shipped /developers.
   // Measured with `node tests/support/perf-cli.ts --csv` on the merged tree,
   // not estimated from a neighbouring page.

@@ -8,14 +8,17 @@
 //   Body { name, email, company?, message, turnstileToken, website(honeypot),
 //          utmSource?, utmMedium?, utmCampaign? } — utm_* persisted from the
 //   landing URL by BaseLayout's sessionStorage snippet (first touch wins).
-//   200 {ok:true} · 400 {error} · 403 turnstile_failed
-//   429 {rate_limited, retryAfterMs} · 5xx → mailto fallback.
+//   200 {ok:true}; every other status carries a MACHINE CODE in `error`.
+//   The visitor-facing wording for each code lives in LEAD_ERROR_COPY
+//   (src/config/site.ts) — that map is the documentation. Do not list codes
+//   here as well; a transcribed contract nothing compares goes stale silently,
+//   which is exactly what happened to the list that used to be on this line.
 //   Content-Type application/json · no credentials.
 //   NOTE: the API CORS origin is locked to https://automancer.uk, so live
 //   submissions only succeed from production. Local dev/preview will hit a
 //   CORS wall and fall through to the mailto fallback (expected).
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { ENDPOINT_URL, TURNSTILE_SITE_KEY, FIELD_LIMITS } from '../config/site';
+import { ENDPOINT_URL, TURNSTILE_SITE_KEY, FIELD_LIMITS, LEAD_ERROR_COPY, LEAD_ERROR_FALLBACK } from '../config/site';
 import { business } from '../data/business';
 
 const steps = [
@@ -173,7 +176,7 @@ const steps = [
     </div>
   </section>
 
-  <script is:inline define:vars={{ endpoint: ENDPOINT_URL, limits: FIELD_LIMITS, email: business.email }}>
+  <script is:inline define:vars={{ endpoint: ENDPOINT_URL, limits: FIELD_LIMITS, email: business.email, errorCopy: LEAD_ERROR_COPY, errorFallback: LEAD_ERROR_FALLBACK }}>
     (function () {
       var form = document.getElementById('contact-form');
       if (!form) return;
@@ -194,6 +197,16 @@ const steps = [
         return input ? input.value : '';
       }
       function resetTurnstile() { try { if (window.turnstile) window.turnstile.reset(); } catch (e) {} }
+
+      // Translate a machine code into copy WE wrote. Never render the code.
+      // An unrecognised code gets honest fallback copy plus the direct email
+      // route, so a visitor is never shown an identifier and never left
+      // without a way through.
+      function copyFor(payload, ourDefault) {
+        var code = payload && typeof payload.error === 'string' ? payload.error : null;
+        if (code && Object.prototype.hasOwnProperty.call(errorCopy, code)) return errorCopy[code];
+        return ourDefault || errorFallback;
+      }
 
       var turnstileFailures = 0;
       form.addEventListener('submit', async function (event) {
@@ -277,19 +290,11 @@ const steps = [
 
           if (res.status === 400) {
             var body = await res.json().catch(function () { return {}; });
-            showError(body && body.error ? body.error : 'Something in the form needs a second look.');
+            showError(copyFor(body, 'Something in the form needs a second look.'));
           } else if (res.status === 403) {
-            // Prefer a message the SERVER supplied over our own guess.
-            //
-            // The API contract is transcribed in the header comment above, not
-            // generated, so nothing compares our assumptions against what it
-            // actually sends. Today a 403 is a single `turnstile_failed` with
-            // no message — but if it is ever improved to distinguish "our
-            // secret is misconfigured" from "your token was bad", the server
-            // knows better than we do and we must not discard what it says.
-            // Hardcoding our own text here would keep blaming the visitor for
-            // our fault, which is the failure the retry logic below exists to
-            // reduce.
+            // The API sends a bare machine CODE in `error`. copyFor() maps it
+            // to copy we wrote; an unrecognised code falls through to our own
+            // wording plus the email route. A code is never rendered.
             var f = await res.json().catch(function () { return {}; });
             // The API returns one 403 for BOTH "the visitor's token was bad"
             // and "our Turnstile secret is wrong". Those need opposite
@@ -302,15 +307,15 @@ const steps = [
             // silently loses the enquiry.
             turnstileFailures += 1;
             if (turnstileFailures >= 2) {
-              showError((f && f.error ? f.error + ' ' : 'The security check keeps failing, which is probably a fault on our side rather than anything you did. ') + 'Please email ' + email + ' directly and we\u2019ll pick it up straight away.');
+              showError(copyFor(f, 'The security check keeps failing, which is probably a fault on our side rather than anything you did.') + ' Please email ' + email + ' directly and we\u2019ll pick it up straight away.');
             } else {
               resetTurnstile();
-              showError(f && f.error ? f.error : 'The security check needs another go — please complete it again and resend.');
+              showError(copyFor(f, 'The security check needs another go — please complete it again and resend.'));
             }
           } else if (res.status === 429) {
             var rl = await res.json().catch(function () { return {}; });
             var secs = rl && rl.retryAfterMs ? Math.ceil(rl.retryAfterMs / 1000) : null;
-            showError(rl && rl.error ? rl.error : 'Whoa, easy — that’s a lot of sending. ' + (secs ? 'Give it about ' + secs + ' seconds' : 'Give it a moment') + ' and try once more.');
+            showError(copyFor(rl, 'Whoa, easy — that’s a lot of sending. ' + (secs ? 'Give it about ' + secs + ' seconds' : 'Give it a moment') + ' and try once more.'));
           } else {
             showError('Something went wrong on our end. Email Waseem directly at ' + email + ' and he’ll pick it up.');
           }
