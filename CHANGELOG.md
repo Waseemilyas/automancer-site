@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.22.6 — 22 August 2026
+
+This release makes Automancer’s public information easier for developers and AI tools to discover, understand, and use through clearer guidance and a dedicated developer area.
+
+
 ## v2026.08.22.5 — 22 August 2026
 
 The website now presents its services and work more clearly, with improved readability, stronger visual hierarchy, and a smoother experience across desktop and mobile.
