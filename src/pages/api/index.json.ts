@@ -42,7 +42,8 @@ export const GET: APIRoute = () =>
         related: [
           { path: '/llms.txt', description: 'Plain-text guide to the site for LLMs and agents.' },
           { path: '/llms-full.txt', description: 'The complete site content in one plain-text file.' },
-          { path: '/.well-known/agent.json', description: 'Agent-facing capability manifest.' },
+          { path: '/agent.json', description: 'Agent-facing capability manifest.' },
+          { path: '/security.txt', description: 'RFC 9116 security.txt.' },
           { path: '/sitemap-index.xml', description: 'XML sitemap of all pages.' },
         ],
       },

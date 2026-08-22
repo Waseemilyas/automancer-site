@@ -62,7 +62,9 @@ export const GET: APIRoute = () => {
   lines.push(`- Case studies (full text): ${business.url}/api/case-studies.json`);
   lines.push(`- Field notes (full text): ${business.url}/api/field-notes.json`);
   lines.push(`- Page inventory: ${business.url}/api/pages.json — every page with title, description, Markdown-twin URL and last-modified.`);
-  lines.push(`- Agent capability manifest: ${business.url}/.well-known/agent.json`);
+  lines.push(
+    `- Agent capability manifest: ${business.url}/agent.json (canonical copy; also emitted at ${business.url}/.well-known/agent.json for hosts that serve dot-paths)`
+  );
   lines.push('- Feeds: /field-notes/rss.xml · /field-notes/feed.json · /work/rss.xml · /work/feed.json (full content, not excerpts).');
   lines.push(`- Sitemap: ${business.url}/sitemap-index.xml`);
   lines.push(

@@ -1,13 +1,18 @@
 /**
  * The machine-readable surface added by feat/agent-readiness
  * (docs/AGENT-READINESS.md): Markdown twins, llms.txt/llms-full.txt, the
- * /api/*.json endpoints, .well-known manifests, feeds and robots.txt.
+ * /api/*.json endpoints, the agent manifest and security.txt (each served at
+ * BOTH /<name> and /.well-known/<name>), feeds and robots.txt.
  *
  * These files are consumed by agents and crawlers without a human in the
  * loop, so the failures they hide are silent by nature: a twin that drifted
  * from its page, a manifest advertising a 404, a security.txt that quietly
  * expired, a feed missing the newest post. Everything here audits the bytes
- * actually emitted into dist/, never the source templates.
+ * actually emitted into dist/, never the source templates — and even that is
+ * not enough on GitHub Pages, which does not serve dot-prefixed paths at all
+ * (measured 2026-08-22): a file can be present and correct in dist/ and
+ * still 404 live. That is why the servable non-dot copies and the
+ * advertisements pointing at THEM are asserted just as hard as the bytes.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -196,13 +201,30 @@ describe('/llms.txt and /llms-full.txt', () => {
     expect(llmsFull!.trim().length).toBeGreaterThan(0);
   });
 
-  it('llms.txt advertises llms-full.txt and the agent manifest by absolute URL', () => {
+  it('advertises llms-full.txt and the agent manifest by absolute URL', () => {
     expect(llms, 'llms.txt should point agents at the full-text file').toContain(
       `${SITE_URL}/llms-full.txt`
     );
-    expect(llms, 'llms.txt should point agents at /.well-known/agent.json').toContain(
-      `${SITE_URL}/.well-known/agent.json`
+    // The servable path: GitHub Pages does not serve dot-prefixed paths, so
+    // /.well-known/agent.json 404s live (measured 2026-08-22) while every
+    // dist/ check stayed green. Agents must be pointed at what resolves.
+    expect(llms, 'llms.txt should point agents at the servable /agent.json').toContain(
+      `${SITE_URL}/agent.json`
     );
+  });
+
+  it('mentions the servable manifest URL first — a /.well-known/ mention may only follow as clearly secondary', () => {
+    const primary = llms!.indexOf(`${SITE_URL}/agent.json`);
+    const secondary = llms!.indexOf(`${SITE_URL}/.well-known/agent.json`);
+    expect(primary, 'llms.txt does not advertise /agent.json at all').toBeGreaterThanOrEqual(0);
+    if (secondary !== -1) {
+      // Substring safety: "${SITE_URL}/.well-known/agent.json" does NOT
+      // contain "${SITE_URL}/agent.json", so these indexes are real mentions.
+      expect(
+        primary,
+        'llms.txt mentions the 404ing /.well-known/ location BEFORE the servable /agent.json'
+      ).toBeLessThan(secondary);
+    }
   });
 });
 
@@ -228,6 +250,29 @@ describe('/api/*.json endpoints', () => {
       parsed.set(endpoint, json);
     });
   }
+
+  it('index.json advertises the manifest and security.txt through servable non-dot paths only', () => {
+    const payload = parsed.get('api/index.json');
+    assertJsonObject(payload, 'api/index.json');
+    assertJsonArray<{ path?: string }>(
+      payload['related'],
+      'api/index.json',
+      '"related" (a list of {path} pointers)'
+    );
+    const related = payload['related'] as Array<{ path?: string }>;
+    const paths = related.map((r) => r.path ?? '');
+    expect(paths, 'index.json should point agents at the servable /agent.json').toContain(
+      '/agent.json'
+    );
+    expect(paths, 'index.json should point agents at the servable /security.txt').toContain(
+      '/security.txt'
+    );
+    const dotted = related.filter((r) => typeof r.path === 'string' && r.path!.startsWith('/.'));
+    expect(
+      dotted.map((r) => r.path),
+      'index.json still advertises dot-prefixed paths — GitHub Pages 404s those (measured 2026-08-22)'
+    ).toEqual([]);
+  });
 
   it('services.json states exactly the services in src/data/business.ts (name, price, unit)', () => {
     const payload = parsed.get('api/services.json') as { services?: unknown[] };
@@ -283,53 +328,96 @@ describe('/api/*.json endpoints', () => {
   });
 });
 
-describe('/.well-known/security.txt — RFC 9116', () => {
-  const raw = readDistFile('.well-known/security.txt');
+describe('security.txt — RFC 9116, served from one builder at two routes', () => {
+  // /security.txt is the copy GitHub Pages actually serves (dot-prefixed
+  // paths 404 live on this host, measured 2026-08-22);
+  // /.well-known/security.txt stays emitted for hosts that serve dot-paths.
+  // Both render from src/data/wellknown-security.ts and must be identical.
+  const copies = [
+    { label: 'dist/security.txt', raw: readDistFile('security.txt') },
+    { label: 'dist/.well-known/security.txt', raw: readDistFile('.well-known/security.txt') },
+  ];
 
-  const fields = new Map<string, string>();
-  for (const line of (raw ?? '').split('\n')) {
-    const kv = /^([A-Za-z-]+):\s*(.+)$/.exec(line.trim());
-    if (kv && !fields.has(kv[1])) fields.set(kv[1], kv[2].trim());
+  function fieldsOf(raw: string): Map<string, string> {
+    const fields = new Map<string, string>();
+    for (const line of raw.split('\n')) {
+      const kv = /^([A-Za-z-]+):\s*(.+)$/.exec(line.trim());
+      if (kv && !fields.has(kv[1])) fields.set(kv[1], kv[2].trim());
+    }
+    return fields;
   }
 
+  it('is emitted at BOTH the servable non-dot path and the conventional dot path', () => {
+    expect(copies[0].raw, 'dist/security.txt missing — the only copy GitHub Pages will serve').toBeTruthy();
+    expect(copies[1].raw, 'dist/.well-known/security.txt missing').toBeTruthy();
+  });
+
+  it('both copies are byte-identical — one builder, zero drift', () => {
+    expect(
+      copies[0].raw,
+      'the served /security.txt has drifted from /.well-known/security.txt'
+    ).toBe(copies[1].raw);
+  });
+
   it('carries the fields RFC 9116 requires of us: Contact, Expires, Preferred-Languages, Canonical', () => {
-    expect(raw, 'dist/.well-known/security.txt missing').toBeTruthy();
-    for (const field of ['Contact', 'Expires', 'Preferred-Languages', 'Canonical']) {
-      expect(fields.get(field), `security.txt is missing ${field}`).toBeTruthy();
+    for (const { label, raw } of copies) {
+      const fields = fieldsOf(raw!);
+      for (const field of ['Contact', 'Expires', 'Preferred-Languages', 'Canonical']) {
+        expect(fields.get(field), `${label} is missing ${field}`).toBeTruthy();
+      }
     }
   });
 
-  it('Contact points at the published mailbox and Canonical at this exact file', () => {
-    expect(fields.get('Contact')).toBe(`mailto:${business.email}`);
-    expect(fields.get('Canonical')).toBe(`${SITE_URL}/.well-known/security.txt`);
+  it('Contact points at the published mailbox in both copies', () => {
+    for (const { raw } of copies) {
+      expect(fieldsOf(raw!).get('Contact')).toBe(`mailto:${business.email}`);
+    }
   });
 
-  it('Expires parses as a date IN THE FUTURE — an expired security.txt is invalid', () => {
-    const expires = fields.get('Expires')!;
-    const parsed_ = Date.parse(expires);
-    expect(
-      Number.isNaN(parsed_),
-      `security.txt Expires "${expires}" is not a parseable date`
-    ).toBe(false);
-    expect(
-      parsed_,
-      `security.txt EXPIRED on ${expires} — regenerate it (the generator derives it from the build date)`
-    ).toBeGreaterThan(Date.now());
+  it('Canonical names the SERVED url (/security.txt) in both copies — a Canonical resolving to a 404 is non-conformant', () => {
+    for (const { label, raw } of copies) {
+      expect(
+        fieldsOf(raw!).get('Canonical'),
+        `${label}: Canonical must be the URL the file actually resolves at`
+      ).toBe(`${SITE_URL}/security.txt`);
+    }
+  });
+
+  it('Expires parses as a date IN THE FUTURE in both copies — an expired security.txt is invalid', () => {
+    for (const { label, raw } of copies) {
+      const expires = fieldsOf(raw!).get('Expires')!;
+      const parsed_ = Date.parse(expires);
+      expect(parsed_, `${label}: Expires "${expires}" is not a parseable date`).not.toBeNaN();
+      expect(
+        parsed_,
+        `${label}: security.txt EXPIRED on ${expires} — regenerate it (the generator derives it from the build date)`
+      ).toBeGreaterThan(Date.now());
+    }
   });
 });
 
-describe('/.well-known/agent.json — capability manifest', () => {
-  const raw = readDistFile('.well-known/agent.json');
+describe('/agent.json — capability manifest, served from one builder at two routes', () => {
+  // /agent.json is the copy GitHub Pages actually serves (dot-prefixed paths
+  // 404 live on this host, measured 2026-08-22); /.well-known/agent.json
+  // stays emitted for hosts that serve dot-paths. Both render from
+  // src/data/wellknown-agent.ts and must be identical.
+  const wellKnownRaw = readDistFile('.well-known/agent.json');
+  const rootRaw = readDistFile('agent.json');
   let agent: unknown;
 
-  it('parses as JSON', () => {
-    expect(raw, 'dist/.well-known/agent.json missing').toBeTruthy();
+  it('is emitted at BOTH routes, byte-identical, and parses as JSON', () => {
+    expect(rootRaw, 'dist/agent.json missing — the only copy GitHub Pages will serve').toBeTruthy();
+    expect(wellKnownRaw, 'dist/.well-known/agent.json missing').toBeTruthy();
     expect(() => {
-      agent = JSON.parse(raw!);
-    }, 'dist/.well-known/agent.json is not valid JSON').not.toThrow();
+      agent = JSON.parse(rootRaw!);
+    }, 'dist/agent.json is not valid JSON').not.toThrow();
+    expect(
+      rootRaw!,
+      'the served /agent.json has drifted from /.well-known/agent.json — one payload, two routes'
+    ).toBe(wellKnownRaw!);
   });
 
-  it('every URL it advertises is absolute https, and every site path resolves to an emitted file', () => {
+  it('every URL it advertises is absolute https, every site path resolves to an emitted file, and none is dot-prefixed', () => {
     const urls: string[] = [];
     const paths: string[] = [];
     const collect = (node: unknown): void => {
@@ -348,19 +436,38 @@ describe('/.well-known/agent.json — capability manifest', () => {
     const ownHost = new URL(SITE_URL).host;
     for (const url of urls) {
       expect(url.startsWith('https://'), `agent.json URL is not absolute https: ${url}`).toBe(true);
-      if (new URL(url).host === ownHost) {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.host === ownHost) {
         expect(
-          resolveInDist('index.html', new URL(url).pathname),
+          parsedUrl.pathname.startsWith('/.'),
+          `agent.json advertises ${url} — a dot-prefixed path this host does not serve (measured: HTTP 404 live)`
+        ).toBe(false);
+        expect(
+          resolveInDist('index.html', parsedUrl.pathname),
           `agent.json advertises ${url} but nothing was emitted at that path — a manifest advertising a 404 is worse than no manifest`
         ).toBeTruthy();
       }
     }
     for (const path of paths) {
       expect(
+        path.startsWith('/.'),
+        `agent.json advertises path ${path} — a dot-prefixed path this host does not serve`
+      ).toBe(false);
+      expect(
         resolveInDist('index.html', path),
         `agent.json advertises path ${path} but nothing was emitted there`
       ).toBeTruthy();
     }
+  });
+
+  it('points agents at security.txt through the servable non-dot path', () => {
+    const machineReadable = (
+      agent as { machineReadable?: { securityTxt?: { url?: string } } }
+    ).machineReadable;
+    expect(
+      machineReadable?.securityTxt?.url,
+      'agent.json should point agents at the servable /security.txt'
+    ).toBe(`${SITE_URL}/security.txt`);
   });
 });
 
@@ -435,6 +542,17 @@ describe('/robots.txt', () => {
       'robots.txt grew Disallow rules — policy is that no site content may be disallowed'
     ).toEqual([]);
   });
+
+  it('advertises the agent manifest at the servable non-dot path, before any /.well-known/ mention', () => {
+    const primary = robots!.indexOf(`${SITE_URL}/agent.json`);
+    const secondary = robots!.indexOf(`${SITE_URL}/.well-known/agent.json`);
+    expect(primary, 'robots.txt does not advertise /agent.json at all').toBeGreaterThanOrEqual(0);
+    if (secondary !== -1) {
+      expect(primary, 'robots.txt mentions /.well-known/ before the servable /agent.json').toBeLessThan(
+        secondary
+      );
+    }
+  });
 });
 
 describe('legal pages (/privacy/, /terms/) are never mirrored', () => {
@@ -493,17 +611,19 @@ describe('legal pages (/privacy/, /terms/) are never mirrored', () => {
 });
 
 describe('GitHub Pages serving constraints', () => {
-  // GitHub Pages runs Jekyll, which silently EXCLUDES any path beginning with
-  // a dot or an underscore. Without .nojekyll the entire /.well-known/
-  // directory builds correctly, passes every dist/ assertion, deploys green —
-  // and 404s in production. That happened: agent.json and security.txt were
-  // advertised in llms.txt and robots.txt while returning 404 to every agent
-  // that followed them.
-  it('emits .nojekyll so dot-directories are actually served', () => {
+  // MEASURED LIVE against production on 2026-08-22: GitHub Pages does NOT
+  // serve ANY dot-prefixed path on this host. /.nojekyll IS in the deployed
+  // artifact and still answers 404, as do /.well-known/agent.json and
+  // /.well-known/security.txt, while non-dot paths of the same build and
+  // deploy answer 200. So .nojekyll does NOT make dot-paths servable here,
+  // and a file can be present and correct in dist/ yet 404 live — which is
+  // why the servable non-dot copies (/agent.json, /security.txt) and every
+  // advertisement pointing at THEM are asserted above. The /.well-known/
+  // emissions stay for when the host serves them.
+  it('emits .nojekyll anyway — correct hygiene even though it did not fix dot-path serving', () => {
     expect(
       existsSync(join(DIST, '.nojekyll')),
-      '.nojekyll is missing from dist/ — GitHub Pages will Jekyll-process the ' +
-        'build and silently drop /.well-known/, which builds fine and 404s live'
+      '.nojekyll is missing from dist/ — GitHub Pages will Jekyll-process the build'
     ).toBe(true);
   });
 });

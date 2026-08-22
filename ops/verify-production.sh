@@ -5,8 +5,11 @@
 # A green actions/deploy-pages only proves GitHub accepted the artifact. This
 # script checks production itself, the way a visitor / crawler / AI agent
 # meets it: pages answer 200, unknown paths are a REAL 404 (not a soft 404),
-# llms.txt and the sitemap exist, the legal footer anchor is on the homepage,
-# and the TLS certificate is valid and not about to expire. Both
+# llms.txt and the sitemap exist, the agent manifest and security.txt answer
+# at their non-dot paths (GitHub Pages does not serve dot-prefixed paths —
+# measured 2026-08-22, when /.well-known/* 404'd live while every dist/-only
+# check stayed green), the legal footer anchor is on the homepage, and the
+# TLS certificate is valid and not about to expire. Both
 # .github/workflows/deploy.yml (post-deploy verify job) and
 # .github/workflows/uptime.yml (cron monitor) call THIS script — the checks
 # exist once so the two callers can never drift apart.
@@ -24,6 +27,12 @@ set -euo pipefail
 readonly ROUTES=("/" "/services" "/work" "/field-notes" "/about" "/contact" "/privacy" "/terms")
 readonly LLMS_PATH="/llms.txt"
 readonly SITEMAP_PATH="/sitemap-index.xml"
+# The agent manifest and RFC 9116 security.txt are served at NON-DOT paths:
+# GitHub Pages does not serve dot-prefixed paths, so the /.well-known/
+# locations build fine and 404 live. These checks exist because exactly that
+# shipped: green CI, green deploy, dead URLs that llms.txt advertised.
+readonly AGENT_MANIFEST_PATH="/agent.json"
+readonly SECURITY_TXT_PATH="/security.txt"
 # Structural, not marketing copy: the company registration line from the
 # site footer (src/components/Footer.astro ← src/data/business.ts). Marketing
 # wording changes; the registered company number does not.
@@ -57,7 +66,8 @@ usage() {
 Usage: ops/verify-production.sh <base-url>
 
 Verify that a deployed Automancer site serves correctly: page statuses,
-real 404s, llms.txt, sitemap XML, homepage footer anchor, TLS certificate.
+real 404s, llms.txt, sitemap XML, agent.json + security.txt at their
+non-dot paths, homepage footer anchor, TLS certificate.
 
 <base-url> must be a BARE https origin:
   - https scheme is required (the check suite includes TLS certificate
@@ -125,11 +135,30 @@ curl_exit_hint() {
 # probe_status <url> <expected-final-status>
 # Follows redirects (bounded), asserts the FINAL status. Prints one line:
 # a success summary on success, or a diagnosis naming URL, expected and
+# Create a temp file, or ABORT THE WHOLE RUN with a clear cause.
+#
+# Why this is not just `mktemp`: if the temp filesystem is out of space or
+# inodes, a bare mktemp returns empty, every redirection then fails, and curl
+# is blamed for it. The script goes on to report "page / answers 200 — gave up
+# after 90s" about a site that is perfectly healthy — a false production
+# incident, arrived at by retrying a condition that retrying cannot fix.
+# Verified against a real /tmp inode exhaustion on the build box, 2026-08-22.
+need_tmp() {
+  local f
+  if ! f=$(mktemp 2>/dev/null) || [[ -z $f ]]; then
+    printf '\nFATAL: cannot create a temporary file in %s.\n' "${TMPDIR:-/tmp}" >&2
+    printf 'This is a problem with THIS MACHINE, not with %s — the site has not been checked.\n' "$BASE_URL" >&2
+    printf 'Check free space and free inodes:  df -h %s ; df -i %s\n' "${TMPDIR:-/tmp}" "${TMPDIR:-/tmp}" >&2
+    exit 3
+  fi
+  printf '%s' "$f"
+}
+
 # actual on failure. Return 0 only when the expectation held.
 probe_status() {
   local url=$1 expected=$2
   local out err meta rc code rest hops effective
-  out=$(mktemp) err=$(mktemp)
+  out=$(need_tmp) err=$(need_tmp)
   rc=0
   curl -sS -L --max-redirs "$MAX_REDIRECTS" --max-time "$HTTP_TIMEOUT_SECS" \
     -o /dev/null -w '%{http_code}|%{num_redirects}|%{url_effective}' \
@@ -165,8 +194,8 @@ BODY_FILE=''
 fetch_body() {
   local url=$1
   local out err meta rc code
-  out=$(mktemp) err=$(mktemp)
-  BODY_FILE=$(mktemp)
+  out=$(need_tmp) err=$(need_tmp)
+  BODY_FILE=$(need_tmp)
   rc=0
   curl -sS -L --max-redirs "$MAX_REDIRECTS" --max-time "$HTTP_TIMEOUT_SECS" \
     -o "$BODY_FILE" -w '%{http_code}' \
@@ -233,6 +262,106 @@ check_llms_txt() {
     return 1
   fi
   printf 'GET %s -> 200, %s bytes\n' "$url" "$bytes"
+  rm -f "$BODY_FILE"
+}
+
+json_parses() {
+  # Real JSON parse, not a substring sniff. python3 ships on GitHub's Ubuntu
+  # runners and every machine this repo is developed on.
+  python3 - "$1" <<'PY' || return 1
+import sys, json
+try:
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        json.load(fh)
+except Exception as exc:
+    print(f"JSON parse error: {exc}", file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
+# rfc9116_conformant <file> <expected-canonical-url-or-empty> — validate the
+# fields RFC 9116 requires: Contact and Expires MUST be present, Expires MUST
+# be a parseable timestamp IN THE FUTURE, Preferred-Languages must be
+# present, and Canonical must be an absolute URL. When an expected canonical
+# URL is supplied (canonical origins only — see below), Canonical must match
+# it EXACTLY. That assertion is not pedantry: a Canonical pointing at a path
+# that 404s makes the document non-conformant AND re-advertises a dead URL —
+# the exact failure mode that put these checks here.
+#
+# The exact match is applied only when HOST is automancer.uk / www (the
+# origin the file is generated to name). On any other host — the preview
+# deploys this script also verifies — the served bytes legitimately still
+# carry production's Canonical, so only structure is asserted there.
+rfc9116_conformant() {
+  python3 - "$1" "$2" <<'PY' || return 1
+import sys, datetime
+
+path, expected_canonical = sys.argv[1], sys.argv[2]
+fields = {}
+with open(path, encoding="utf-8") as fh:
+    for line in fh:
+        key, sep, value = line.partition(":")
+        if sep and key.strip() and key.strip() not in fields:
+            fields[key.strip()] = value.strip()
+
+missing = [k for k in ("Contact", "Expires", "Preferred-Languages", "Canonical") if k not in fields]
+if missing:
+    print(f"missing required field(s): {', '.join(missing)}", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    expires = datetime.datetime.fromisoformat(fields["Expires"].replace("Z", "+00:00"))
+except ValueError:
+    print(f"Expires \"{fields['Expires']}\" is not a parseable RFC 3339 timestamp", file=sys.stderr)
+    sys.exit(1)
+if expires <= datetime.datetime.now(datetime.timezone.utc):
+    print(
+        f"Expires \"{fields['Expires']}\" is NOT in the future — the document is invalid (RFC 9116 §3.3)",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+if not fields["Canonical"].startswith(("http://", "https://")):
+    print(f"Canonical \"{fields['Canonical']}\" is not an absolute http(s) URL", file=sys.stderr)
+    sys.exit(1)
+
+if expected_canonical and fields["Canonical"] != expected_canonical:
+    print(
+        f"Canonical \"{fields['Canonical']}\" does not match the served URL \"{expected_canonical}\" "
+        "- a Canonical that does not resolve makes the file non-conformant",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+PY
+}
+
+check_agent_manifest() {
+  local url="${BASE_URL}${AGENT_MANIFEST_PATH}"
+  fetch_body "$url" || return 1
+  if ! json_parses "$BODY_FILE"; then
+    printf 'GET %s returned HTTP 200 but the body is NOT valid JSON (first bytes: %s)\n' \
+      "$url" "$(head -c 120 "$BODY_FILE" | tr -d '\n')"
+    rm -f "$BODY_FILE"
+    return 1
+  fi
+  printf 'GET %s -> 200 and parses as JSON\n' "$url"
+  rm -f "$BODY_FILE"
+}
+
+check_security_txt() {
+  local url="${BASE_URL}${SECURITY_TXT_PATH}" verdict expected_canonical=''
+  fetch_body "$url" || return 1
+  # Exact Canonical match only on the origin the file is generated to name;
+  # preview origins get structural validation (see rfc9116_conformant).
+  case "$HOST" in
+    automancer.uk | www.automancer.uk) expected_canonical="${BASE_URL}${SECURITY_TXT_PATH}" ;;
+  esac
+  if ! verdict=$(rfc9116_conformant "$BODY_FILE" "$expected_canonical" 2>&1); then
+    printf 'GET %s returned HTTP 200 but VIOLATES RFC 9116: %s\n' "$url" "$(printf '%s' "$verdict" | tr -d '\n')"
+    rm -f "$BODY_FILE"
+    return 1
+  fi
+  printf 'GET %s -> 200 and satisfies RFC 9116 (Contact, future Expires, Canonical resolves)\n' "$url"
   rm -f "$BODY_FILE"
 }
 
@@ -306,8 +435,38 @@ check_tls() {
     "$HOST" "$expiry_iso" "$days_left" "$TLS_MIN_DAYS"
 }
 
+# Confirm THIS MACHINE can do the job before asserting anything about the site.
+#
+# Every probe needs temp files. If the temp filesystem is out of space or
+# inodes, mktemp returns empty, redirections fail, and curl gets blamed — the
+# run then reports "page / answers 200 — gave up after 90s" about a perfectly
+# healthy site. A false production incident, reached by retrying a condition
+# that retrying cannot fix.
+#
+# It has to be checked HERE rather than at each call site: the probes run
+# inside command substitutions, so an `exit` in one of them kills the subshell
+# and the run carries on regardless. Verified against a real /tmp inode
+# exhaustion on the build box, 2026-08-22.
+preflight() {
+  local probe
+  if ! probe=$(mktemp 2>/dev/null) || [[ -z $probe ]]; then
+    printf 'FATAL: cannot create a temporary file in %s.\n' "${TMPDIR:-/tmp}" >&2
+    printf 'This is a problem with THIS MACHINE, not with the site — nothing has been checked.\n' >&2
+    printf 'Check free space AND free inodes (bytes can be plentiful while inodes are gone):\n' >&2
+    printf '  df -h %s\n  df -i %s\n' "${TMPDIR:-/tmp}" "${TMPDIR:-/tmp}" >&2
+    exit 3
+  fi
+  if ! printf 'probe\n' >"$probe" 2>/dev/null; then
+    rm -f "$probe"
+    printf 'FATAL: %s is not writable — nothing has been checked.\n' "${TMPDIR:-/tmp}" >&2
+    exit 3
+  fi
+  rm -f "$probe"
+}
+
 main() {
   validate_base_url "$@"
+  preflight
   log "Verifying ${BASE_URL} (each check retries for up to ${DEADLINE_SECS}s before failing)"
   log ""
 
@@ -322,6 +481,8 @@ main() {
   if ! poll_check "unknown path answers a REAL 404 (not a soft 404)" check_not_found; then :; fi
   if ! poll_check "${LLMS_PATH} answers 200 with a non-empty body" check_llms_txt; then :; fi
   if ! poll_check "${SITEMAP_PATH} answers 200 and parses as XML" check_sitemap; then :; fi
+  if ! poll_check "${AGENT_MANIFEST_PATH} answers 200 and parses as JSON" check_agent_manifest; then :; fi
+  if ! poll_check "${SECURITY_TXT_PATH} answers 200 and satisfies RFC 9116" check_security_txt; then :; fi
   if ! poll_check "homepage contains structural anchor \"${HOMEPAGE_ANCHOR}\"" check_homepage_anchor; then :; fi
   if ! poll_check "TLS certificate valid and expires >${TLS_MIN_DAYS} days out" check_tls; then :; fi
 

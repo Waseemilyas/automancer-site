@@ -16,7 +16,7 @@
  * shipped file trivially "matches" itself).
  */
 import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { DIST, ROOT } from './support/dist';
 

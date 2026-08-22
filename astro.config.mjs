@@ -8,6 +8,11 @@ import sitemap from '@astrojs/sitemap';
  * Astro's page scanner ignores dotted directories, so these two routes are
  * injected explicitly. The handlers live in src/data/ next to the modules
  * they are generated from (business facts, build provenance).
+ *
+ * GitHub Pages does not serve dot-prefixed paths (measured 2026-08-22), so
+ * these routes are the SECONDARY copies. The canonical, actually-served
+ * twins /agent.json and /security.txt are ordinary scanned pages in
+ * src/pages/, rendering from the same data modules — one source, no drift.
  */
 /** @type {import('astro').AstroIntegration} */
 const wellKnownRoutes = {
