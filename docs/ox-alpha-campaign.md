@@ -761,3 +761,37 @@ have touched**, not merely against something similar.
   success on GitHub's machines twenty-one times tonight, across eighteen deploys and
   three scheduled checks. Closed, but by the second piece of evidence rather than the
   first.
+
+### Open item: give the checking script a self-test, and give it BOTH halves
+
+This was on my working list all night and never made it into this document, which is
+its own small lesson: the grep that found three unrun things missing from here would
+not have found this one, because it was never written down anywhere.
+
+**The design I was going to build was wrong, and the fault is worth recording.** I had
+specified: point every check at an address where nothing is listening, and fail if any
+check passes. That proves each check *can* report a problem.
+
+It cannot detect a check that can **never** report success. A check demanding something
+impossible — a condition that is false even when everything is healthy — goes red
+against a dead address exactly like a correct check does, so this self-test passes it
+without comment. Another repo on this campaign shipped precisely that defect tonight,
+and its self-test ran clean over the top of it.
+
+**So a self-test needs both directions:**
+
+- *Can each check fail?* Point them at an address where nothing is listening. Every one
+  must go red, with its own specific message. **Done tonight, manually, by hand** — all
+  checks failing in order with accurate reasons.
+- *Can each check succeed?* Point them at a target known to be healthy. Every one must
+  go green. For this repo that is already satisfied by ordinary operation: the same
+  script has run to success against the live site twenty-one times tonight on GitHub's
+  machines.
+
+The second half is the awkward one in general, because the only reliably healthy target
+tends to be production itself — the very thing an exclusion is usually protecting. That
+is worth stating plainly: **excluding production from testing does not just leave that
+path unverified, it can make a whole class of defect impossible to find.**
+
+Neither half is wired into the script as a flag yet. Both have been performed manually
+and the results are recorded here.
