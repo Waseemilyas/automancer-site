@@ -28,8 +28,17 @@ readonly SITEMAP_PATH="/sitemap-index.xml"
 # site footer (src/components/Footer.astro ← src/data/business.ts). Marketing
 # wording changes; the registered company number does not.
 readonly HOMEPAGE_ANCHOR="Company No. 17060907"
-readonly TLS_MIN_DAYS=14
+# MEASURED 2026-08-22, not estimated. The live certificate is Let's Encrypt,
+# 89-day lifetime, and LE renews at ~1/3 life remaining (~29 days out). So the
+# threshold must sit BELOW 29 or it fires on every renewal cycle. 21 does, and
+# it surfaces a FAILED renewal within about a week instead of sitting silent
+# for a fortnight, which a 14-day threshold would have done.
+readonly TLS_MIN_DAYS=21
 
+# MEASURED: Pages deploys tonight completed in 36-47s end to end. This is a
+# BACKSTOP against a hung request, not the check itself — the check is the
+# assertion, and it retries until it passes or this budget runs out. Sized at
+# roughly 2x the observed worst case.
 readonly DEADLINE_SECS=90          # per-check retry budget before declaring failure
 readonly POLL_INTERVAL_SECS=5
 readonly HTTP_TIMEOUT_SECS=15      # per-request curl timeout
