@@ -1,5 +1,15 @@
 # Release notes
 
+## v2026.08.22.3 — 22 August 2026
+
+This release improves confidence that the public website remains available and secure after updates and between visits.
+
+### Reliability
+
+- The site is now checked after each update and on a regular schedule.
+- These checks help us spot unavailable pages and secure-connection issues sooner.
+
+
 ## v2026.08.22.2 — 22 August 2026
 
 Automancer’s public website now makes its service information and security contact details available to the tools and services that look for them.
