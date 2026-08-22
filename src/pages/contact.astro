@@ -279,6 +279,18 @@ const steps = [
             var body = await res.json().catch(function () { return {}; });
             showError(body && body.error ? body.error : 'Something in the form needs a second look.');
           } else if (res.status === 403) {
+            // Prefer a message the SERVER supplied over our own guess.
+            //
+            // The API contract is transcribed in the header comment above, not
+            // generated, so nothing compares our assumptions against what it
+            // actually sends. Today a 403 is a single `turnstile_failed` with
+            // no message — but if it is ever improved to distinguish "our
+            // secret is misconfigured" from "your token was bad", the server
+            // knows better than we do and we must not discard what it says.
+            // Hardcoding our own text here would keep blaming the visitor for
+            // our fault, which is the failure the retry logic below exists to
+            // reduce.
+            var f = await res.json().catch(function () { return {}; });
             // The API returns one 403 for BOTH "the visitor's token was bad"
             // and "our Turnstile secret is wrong". Those need opposite
             // responses: the first is worth retrying, the second is a
@@ -290,15 +302,15 @@ const steps = [
             // silently loses the enquiry.
             turnstileFailures += 1;
             if (turnstileFailures >= 2) {
-              showError('The security check keeps failing, which is probably a fault on our side rather than anything you did. Please email ' + email + ' directly and we\u2019ll pick it up straight away.');
+              showError((f && f.error ? f.error + ' ' : 'The security check keeps failing, which is probably a fault on our side rather than anything you did. ') + 'Please email ' + email + ' directly and we\u2019ll pick it up straight away.');
             } else {
               resetTurnstile();
-              showError('The security check needs another go — please complete it again and resend.');
+              showError(f && f.error ? f.error : 'The security check needs another go — please complete it again and resend.');
             }
           } else if (res.status === 429) {
             var rl = await res.json().catch(function () { return {}; });
             var secs = rl && rl.retryAfterMs ? Math.ceil(rl.retryAfterMs / 1000) : null;
-            showError('Whoa, easy — that’s a lot of sending. ' + (secs ? 'Give it about ' + secs + ' seconds' : 'Give it a moment') + ' and try once more.');
+            showError(rl && rl.error ? rl.error : 'Whoa, easy — that’s a lot of sending. ' + (secs ? 'Give it about ' + secs + ' seconds' : 'Give it a moment') + ' and try once more.');
           } else {
             showError('Something went wrong on our end. Email Waseem directly at ' + email + ' and he’ll pick it up.');
           }
