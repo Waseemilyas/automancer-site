@@ -6,8 +6,8 @@ Our privacy information now gives a clearer picture of how the website’s secur
 
 ## Privacy
 
-- The privacy notice explains that the security check may use a strictly necessary cookie or similar browser storage.
-- It states that this storage is held under the security provider’s domain rather than Automancer’s.
+- The privacy notice now describes what the contact-page security check actually stores. We measured it: it sets no cookie, and instead saves one small value in your browser.
+- It states that this storage sits under the security provider’s domain rather than Automancer’s, and why it needs no consent prompt.
 
 
 ## v2026.08.23.1 — 23 August 2026
