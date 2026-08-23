@@ -34,12 +34,14 @@ const PINNED: Record<string, { sha256: string; lastUpdated: string | null }> = {
   // Re-pinned later the SAME DAY (AUT-6472, item 4) for a second substantive
   // change: the Turnstile paragraph said it "may set a strictly-necessary
   // cookie". Measured, it sets no cookie — it writes cf.turnstile.u to
-  // localStorage on challenges.cloudflare.com. Reworded to "cookie or similar
-  // local storage" and the PECR sentence widened to cover equivalent storage.
+  // localStorage on challenges.cloudflare.com. The notice now names that exact
+  // behaviour, scopes its no-storage claim around the contact-page exception,
+  // and ties the PECR reliance to the requested contact-form service instead
+  // of describing security as a blanket exception.
   // The date does NOT move: it already reads 23 August 2026, which is still
   // the day the substance changed.
   '/privacy/': {
-    sha256: '8f006cee6f4feff218ac30770577c525e3f0d81d0e70ec89d4b682c67cae8d07',
+    sha256: 'cf3a28bc8dd8928449e6c32cc5227a05135f6289d89470cc0f7a851565b046b8',
     lastUpdated: '23 August 2026',
   },
   // CHARACTERISING, NOT ENDORSING: /terms/ publishes NO date and no version.

@@ -1,7 +1,8 @@
 /**
  * /privacy makes a FALSIFIABLE FACTUAL CLAIM about this site's behaviour:
  *
- *   "loading the site sets no cookies and stores nothing in your browser"
+ *   outside the contact-page security check, loading the site "sets no
+ *   cookies and stores nothing in your browser"
  *
  * That is not marketing copy — it is the stated reason there is no cookie
  * banner. If any code starts writing to the browser, the notice becomes a
@@ -32,23 +33,24 @@
  *     spelling a reference differently.
  *   - Neither check can see storage written by a cross-origin iframe
  *     (Cloudflare Turnstile). That was checked by observation in the same
- *     audit and is disclosed in the notice as a strictly-necessary security
- *     cookie; it is out of scope here by necessity, not by oversight.
+ *     audit and is disclosed in the notice as cf.turnstile.u in localStorage
+ *     on challenges.cloudflare.com; it is out of scope here by necessity,
+ *     not by oversight.
  *   - Comments count as references in the static scan. That is deliberate:
  *     a server-side comment costs nothing, and an HTML comment explaining
  *     why we do not use sessionStorage would otherwise sit in the shipped
  *     output where it defeats exactly this kind of grep audit — which is
  *     what happened to the first draft of the removal.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DIST, allHtmlFiles } from './support/dist';
 import { runPage } from './support/storage-sentinel';
 
 /**
- * Browser-storage APIs that would each falsify the notice. Word-boundary
- * matched so unrelated identifiers do not trip them.
+ * Browser-storage APIs that would each falsify the notice if used by our own
+ * site code. Word-boundary matched so unrelated identifiers do not trip them.
  */
 const STORAGE_APIS = [
   'localStorage',
@@ -101,7 +103,7 @@ const REMEDY =
   'silence this test to make a build pass: the test is downstream of a ' +
   'published legal claim, not a style rule.';
 
-describe('the site writes nothing to the browser', () => {
+describe('same-origin site code writes nothing to the browser', () => {
   it('no emitted JS asset touches browser storage', () => {
     const js = allJsFiles();
 

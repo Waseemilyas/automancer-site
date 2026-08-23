@@ -64,10 +64,11 @@ const { title, description, image, ogType = 'website', schema = [], pageType } =
       NO browser-storage writes here, deliberately. A UTM-capture snippet used
       to persist utm_* from the landing URL for the contact form to attribute
       the lead. Removed 2026-08-22 (AUT-6414, Waseem's call as data
-      controller): /privacy tells visitors this site "stores nothing in your
-      browser", and campaign attribution is not strictly necessary under PECR,
-      so the snippet made that claim false and was never consented to. Keeping
-      the claim literally true was judged worth more than the attribution.
+      controller): /privacy tells visitors our own site code "stores nothing in
+      your browser" outside the disclosed contact-page security check, and
+      campaign attribution is not strictly necessary under PECR, so the snippet
+      made that claim false and was never consented to. Keeping the claim true
+      was judged worth more than the attribution.
       If campaign attribution is ever wanted again it needs a consent
       mechanism first — do not reinstate it as a bare snippet.
       tests/no-browser-storage.test.ts enforces this.

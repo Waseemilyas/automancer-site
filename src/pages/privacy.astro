@@ -178,18 +178,19 @@ const lastUpdated = staticPages.find((p) => p.path === '/privacy/')!.lastUpdated
       <h2>Cookies and the security check</h2>
       <p>
         <strong>We don't use tracking or analytics cookies</strong>, so there's no cookie banner —
-        because there's nothing to consent to. We checked this empirically: loading the site sets no
-        cookies and stores nothing in your browser.
+        because none of the browser storage we use requires consent. We checked this empirically:
+        outside the contact-page security check described below, loading the site sets no cookies
+        and stores nothing in your browser.
       </p>
       <p>
-        The one exception is the security check (Cloudflare Turnstile) on the contact page. To do its
-        job — telling a real person apart from an automated bot — it may set a strictly-necessary
-        cookie or similar local storage while it's actively defending the form. In practice what we
-        measured is the second kind: it stores a small value under Cloudflare's own domain, not ours.
-        Under UK law (PECR), cookies and equivalent browser storage that are strictly necessary for
-        security and to deliver a service you've asked for are exempt from consent requirements,
-        which is why you don't get a pop-up for it. It's there to protect the form, not to track you,
-        and it only comes into play on the contact page.
+        The one exception is the security check (Cloudflare Turnstile) on the contact page. When we
+        measured it, Turnstile set no cookie. While it is actively defending the form, it writes a
+        small value named <code>cf.turnstile.u</code> to <code>localStorage</code> under Cloudflare's
+        {' '}<code>challenges.cloudflare.com</code> origin, not ours. PECR applies to this kind of browser
+        storage as well as to cookies. We rely on its strictly necessary exception because the
+        storage supports the security check needed to protect the contact-form service you ask to
+        use, and we do not use it for tracking. That is why we do not ask for consent. Turnstile only
+        runs on the contact page.
       </p>
 
       <h2>How long we keep it</h2>

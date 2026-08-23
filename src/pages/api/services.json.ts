@@ -2,7 +2,6 @@
 // page pricing derives from.
 import type { APIRoute } from 'astro';
 import { business, services } from '../../data/business';
-import { serviceId } from '../../data/site-content';
 import { build } from '../../data/build';
 
 export const GET: APIRoute = () =>

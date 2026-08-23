@@ -10,7 +10,6 @@
  */
 import { business, services } from './business';
 import { pagePath } from './urls';
-import { serviceId } from './site-content';
 
 const ORG_ID = `${business.url}/#organization`;
 const SITE_ID = `${business.url}/#website`;

@@ -14,8 +14,9 @@
 //   Content-Type application/json · no credentials.
 //   The endpoint also accepts utmSource?/utmMedium?/utmCampaign?, and this page
 //   used to send them. It no longer does — the capture was removed 2026-08-22
-//   (AUT-6414) to keep /privacy's "stores nothing in your browser" true. The
-//   reasoning is in BaseLayout.astro; do not re-add these without reading it.
+//   (AUT-6414) to keep /privacy's claim that our own site code stores nothing
+//   in the browser true. The reasoning is in BaseLayout.astro; do not re-add
+//   these without reading it.
 //   NOTE: the API CORS origin is locked to https://automancer.uk, so live
 //   submissions only succeed from production. Local dev/preview will hit a
 //   CORS wall and fall through to the mailto fallback (expected).
