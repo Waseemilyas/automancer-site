@@ -39,26 +39,33 @@ export interface PageRunResult {
  * silently. Storage still works underneath, so scripts that legitimately
  * inspect it after writing do not themselves throw.
  */
-function instrument(window: Window): string[] {
-  const touches: string[] = [];
+function instrument(window: Window, touches: string[], instrumentedWindows: WeakSet<Window>): void {
+  if (instrumentedWindows.has(window)) return;
+  instrumentedWindows.add(window);
+
   const record = (message: string) => touches.push(message);
 
-  // Patched on the INSTANCE, not the shared Storage prototype, so a touch is
-  // still caught no matter how the reference to `localStorage` /
-  // `sessionStorage` was computed — the property lookup always returns this
-  // same instrumented object.
-  for (const name of ['localStorage', 'sessionStorage'] as const) {
-    const store = window[name];
-    for (const method of ['setItem', 'getItem', 'removeItem', 'clear', 'key'] as const) {
-      const original = store[method].bind(store);
-      Object.defineProperty(store, method, {
-        value: (...args: unknown[]) => {
-          record(`${name}.${method}(${args.map(String).join(', ')})`);
-          return (original as (...a: unknown[]) => unknown)(...args);
-        },
-        configurable: true,
-      });
-    }
+  // Patch the shared Storage prototype, not only each instance. An own-property
+  // patch can be bypassed with
+  // `Object.getPrototypeOf(localStorage).setItem.call(localStorage, ...)`.
+  // Instrumenting the prototype means computed access, a descriptor lookup, and
+  // an explicit `.call()` all run through the same wrapper.
+  const localStorage = window.localStorage;
+  const sessionStorage = window.sessionStorage;
+  const storagePrototype = Object.getPrototypeOf(localStorage) as Record<string, unknown>;
+  for (const method of ['setItem', 'getItem', 'removeItem', 'clear', 'key'] as const) {
+    const original = storagePrototype[method];
+    if (typeof original !== 'function') continue;
+
+    Object.defineProperty(storagePrototype, method, {
+      value: function (this: unknown, ...args: unknown[]) {
+        const storageName = this === localStorage ? 'localStorage' : this === sessionStorage ? 'sessionStorage' : 'Storage';
+        record(`${storageName}.${method}(${args.map(String).join(', ')})`);
+        return (original as (...a: unknown[]) => unknown).apply(this, args);
+      },
+      configurable: true,
+      writable: true,
+    });
   }
 
   // `cookie` is an accessor on Document.prototype; shadowing it on the
@@ -111,24 +118,42 @@ function instrument(window: Window): string[] {
     configurable: true,
   });
 
-  return touches;
+  // A same-origin about:blank iframe has a fresh Window and Storage prototype.
+  // Instrument it lazily when page code first obtains `contentWindow`, which
+  // catches `iframe.contentWindow.localStorage` without changing iframe
+  // creation or application behaviour.
+  const iframePrototype = Object.getPrototypeOf(window.document.createElement('iframe'));
+  const contentWindow = Object.getOwnPropertyDescriptor(iframePrototype, 'contentWindow');
+  if (contentWindow?.get) {
+    Object.defineProperty(iframePrototype, 'contentWindow', {
+      get() {
+        const frameWindow = contentWindow.get?.call(this) as Window | null;
+        if (frameWindow) instrument(frameWindow, touches, instrumentedWindows);
+        return frameWindow;
+      },
+      configurable: true,
+    });
+  }
 }
 
 /**
- * Loads one built page into happy-dom, runs every same-origin script it
- * ships (inline and external), fires `DOMContentLoaded`, and reports any
+ * Loads one built page into happy-dom, runs its top-level inline and
+ * same-origin external scripts, fires `DOMContentLoaded`, and reports any
  * browser-storage touch.
  *
  * Deliberately out of scope, same as the static test: cross-origin scripts
  * (the Cloudflare Turnstile widget) run in their own iframe/origin and are
  * not evaluated here — checked by observation instead, see /privacy. Also
  * out of scope: behaviour that only runs after a user interaction (a click
- * handler, a form submit) rather than at load time or on
- * `DOMContentLoaded` — this sentinel proves the load path, not every path.
+ * handler, a form submit), dynamic imports, and scripts inside an iframe
+ * document. A page script's direct access to a same-origin iframe's storage
+ * is instrumented, but the iframe document is not executed. This sentinel
+ * proves the top-level load path, not every path.
  */
 export function runPage(html: string): PageRunResult {
   const window = new Window({ url: 'https://automancer.uk/' });
-  const touches = instrument(window);
+  const touches: string[] = [];
+  instrument(window, touches, new WeakSet());
   const errors: string[] = [];
 
   window.document.write(html);
