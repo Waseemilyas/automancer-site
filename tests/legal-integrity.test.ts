@@ -22,15 +22,17 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { allHtmlFiles } from './support/dist';
 
-/** Text of the legal pages as published, hashed 2026-08-22. */
+/** Text of the legal pages as published, hashed 2026-08-23. */
 const PINNED: Record<string, { sha256: string; lastUpdated: string | null }> = {
-  // Moved 2026-08-22 for a SUBSTANTIVE change (AUT-6414), so the date moved too:
-  // Sentry added to the processor list, and the "when you just browse" section
-  // corrected — it claimed GitHub Pages was the only third party we couldn't
-  // avoid, which was untrue while Sentry loaded on every page.
+  // Moved 2026-08-23 for a SUBSTANTIVE change (AUT-6414, adversarial review
+  // AUT-6705 finding 2): the Sentry processor bullet claimed we "configured it
+  // not to collect personal data" — an absolute claim sendDefaultPii:false does
+  // not support, since error messages/URLs can still carry incidental personal
+  // data. Reworded to match the narrower, accurate framing already used in the
+  // "when you just browse" section above it.
   '/privacy/': {
-    sha256: '313ee801717915eef21037208ecc7ea61643d61b385135204d6531fee5331675',
-    lastUpdated: '22 August 2026',
+    sha256: '8352fad99dca4d05da9f7a5d407b8195b4456ee09bfd0f07ad38e5baad1c891f',
+    lastUpdated: '23 August 2026',
   },
   // CHARACTERISING, NOT ENDORSING: /terms/ publishes NO date and no version.
   // src/data/site-content.ts records no lastUpdated for it, unlike /privacy/.

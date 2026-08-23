@@ -168,8 +168,10 @@ const lastUpdated = staticPages.find((p) => p.path === '/privacy/')!.lastUpdated
         <li>
           <strong>Sentry</strong> — error monitoring. When a script on the site fails in your
           browser, Sentry receives the technical details of that failure so we can fix it. We've
-          configured it not to collect personal data, with no performance tracking and no session
-          replay, and the data is processed on Sentry's EU (Germany) infrastructure.
+          turned off the settings that would attach personal data such as your IP address by
+          default, along with performance tracking and session replay, and the data is processed
+          on Sentry's EU (Germany) infrastructure. An error message or URL could still incidentally
+          contain something personal if you typed it into the page yourself.
         </li>
       </ul>
 

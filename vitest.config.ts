@@ -20,8 +20,11 @@ const maxWorkers = Number(process.env.VITEST_MAX_WORKERS ?? 2);
 
 export default defineConfig({
   test: {
-    // The suite is pure Node — no browser, no jsdom. Pages are parsed with
-    // node-html-parser (see tests/support/dist.ts for the choice rationale).
+    // The vitest environment itself is pure Node — no browser, no jsdom.
+    // Pages are parsed with node-html-parser (see tests/support/dist.ts for
+    // the choice rationale). tests/support/storage-sentinel.ts is the one
+    // exception: it spins up its own happy-dom Window per page to actually
+    // execute scripts, rather than relying on this environment setting.
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     // Runs `pnpm run build` exactly once before any test file loads.

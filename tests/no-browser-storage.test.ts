@@ -19,22 +19,32 @@
  *   - This greps the BUILT OUTPUT — inline scripts and every emitted JS
  *     asset, so third-party bundles (Sentry) are covered too, not just our
  *     own source.
- *   - A static scan proves the storage APIs are never REFERENCED, which is
- *     stronger than proving they are never called and is the property we
- *     actually want. It cannot see storage written by a cross-origin iframe
+ *   - This is a STATIC scan of source text, not proof the APIs are never
+ *     called. Adversarial review (AUT-6705, 2026-08-22) demonstrated that a
+ *     computed reference — `window[["session", "Storage"].join("")]`,
+ *     `document["cookie"]` — reaches the real API while evading a literal
+ *     grep. This file exists because a static scan is fast, greppable, and
+ *     names the exact offending line, which is worth keeping for the common
+ *     case; the property this suite actually needs — proof the APIs are
+ *     never CALLED, however they were referenced — is enforced by the
+ *     behaviour-level check in tests/support/storage-sentinel.ts below,
+ *     which actually executes the built page and cannot be evaded by
+ *     spelling a reference differently.
+ *   - Neither check can see storage written by a cross-origin iframe
  *     (Cloudflare Turnstile). That was checked by observation in the same
  *     audit and is disclosed in the notice as a strictly-necessary security
  *     cookie; it is out of scope here by necessity, not by oversight.
- *   - Comments count as references. That is deliberate: a server-side
- *     comment costs nothing, and an HTML comment explaining why we do not
- *     use sessionStorage would otherwise sit in the shipped output where it
- *     defeats exactly this kind of grep audit — which is what happened to
- *     the first draft of the removal.
+ *   - Comments count as references in the static scan. That is deliberate:
+ *     a server-side comment costs nothing, and an HTML comment explaining
+ *     why we do not use sessionStorage would otherwise sit in the shipped
+ *     output where it defeats exactly this kind of grep audit — which is
+ *     what happened to the first draft of the removal.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DIST, allHtmlFiles } from './support/dist';
+import { runPage } from './support/storage-sentinel';
 
 /**
  * Browser-storage APIs that would each falsify the notice. Word-boundary
@@ -143,6 +153,45 @@ describe('the site writes nothing to the browser', () => {
         "data controller's decision, to keep /privacy's \"stores nothing in " +
         'your browser" claim literally true. It is back in the build output.' +
         REMEDY
+    ).toBe('');
+  });
+});
+
+describe('running the site touches nothing in the browser (behaviour-level)', () => {
+  // One shared instrumented run per page, computed once and reused by both
+  // assertions below — running the page twice would double the (already
+  // real) cost of spinning up a happy-dom window per page.
+  const runs = allHtmlFiles().map((page) => ({ page, result: runPage(page.html) }));
+
+  it('every same-origin script executed cleanly', () => {
+    // If a script throws, everything after the throw never ran — including
+    // any storage write it contains. A page we could not fully execute is
+    // not a page we can vouch for, so this is its own failure, not a
+    // silently-ignored warning.
+    const offenders = runs
+      .filter(({ result }) => result.errors.length > 0)
+      .map(({ page, result }) => `${page.route}\n  ${result.errors.join('\n  ')}`);
+
+    expect(
+      offenders.join('\n\n'),
+      'A page script threw while executing in the behaviour-level sentinel ' +
+        '(tests/support/storage-sentinel.ts), so it cannot vouch for the ' +
+        'assertion below — the throw may have skipped a real storage write. ' +
+        'Fix the script (or the sentinel, if the failure is an environment ' +
+        'limitation) rather than ignoring this.'
+    ).toBe('');
+  });
+
+  it('no page touches a browser-storage API at runtime, however it was referenced', () => {
+    const offenders = runs
+      .filter(({ result }) => result.touches.length > 0)
+      .map(({ page, result }) => `${page.route}\n  ${result.touches.join('\n  ')}`);
+
+    expect(
+      offenders.join('\n\n'),
+      'A page called a browser-storage API while actually running, which ' +
+        'falsifies the claim on /privacy that this site stores nothing in ' +
+        `your browser — regardless of how the API was referenced.${REMEDY}`
     ).toBe('');
   });
 });
