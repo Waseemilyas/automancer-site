@@ -1,5 +1,15 @@
 # Release notes
 
+## v2026.08.23.1 — 23 August 2026
+
+This release makes privacy choices simpler and the site’s data handling easier to understand.
+
+### Privacy and data handling
+
+- The site no longer saves campaign details in your browser or sends them with contact enquiries.
+- The privacy notice now explains the limited technical information used when a page error occurs, including that personal data settings are turned off.
+
+
 ## v2026.08.22.11 — 22 August 2026
 
 Contact form errors are now clearer and more helpful for visitors.
