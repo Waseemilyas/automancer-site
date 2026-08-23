@@ -184,10 +184,12 @@ const lastUpdated = staticPages.find((p) => p.path === '/privacy/')!.lastUpdated
       <p>
         The one exception is the security check (Cloudflare Turnstile) on the contact page. To do its
         job — telling a real person apart from an automated bot — it may set a strictly-necessary
-        cookie while it's actively defending the form. Under UK law (PECR), cookies that are strictly
-        necessary for security and to deliver a service you've asked for are exempt from consent
-        requirements, which is why you don't get a pop-up for it. It's there to protect the form, not
-        to track you, and it only comes into play on the contact page.
+        cookie or similar local storage while it's actively defending the form. In practice what we
+        measured is the second kind: it stores a small value under Cloudflare's own domain, not ours.
+        Under UK law (PECR), cookies and equivalent browser storage that are strictly necessary for
+        security and to deliver a service you've asked for are exempt from consent requirements,
+        which is why you don't get a pop-up for it. It's there to protect the form, not to track you,
+        and it only comes into play on the contact page.
       </p>
 
       <h2>How long we keep it</h2>

@@ -30,8 +30,16 @@ const PINNED: Record<string, { sha256: string; lastUpdated: string | null }> = {
   // not support, since error messages/URLs can still carry incidental personal
   // data. Reworded to match the narrower, accurate framing already used in the
   // "when you just browse" section above it.
+  //
+  // Re-pinned later the SAME DAY (AUT-6472, item 4) for a second substantive
+  // change: the Turnstile paragraph said it "may set a strictly-necessary
+  // cookie". Measured, it sets no cookie — it writes cf.turnstile.u to
+  // localStorage on challenges.cloudflare.com. Reworded to "cookie or similar
+  // local storage" and the PECR sentence widened to cover equivalent storage.
+  // The date does NOT move: it already reads 23 August 2026, which is still
+  // the day the substance changed.
   '/privacy/': {
-    sha256: '8352fad99dca4d05da9f7a5d407b8195b4456ee09bfd0f07ad38e5baad1c891f',
+    sha256: '8f006cee6f4feff218ac30770577c525e3f0d81d0e70ec89d4b682c67cae8d07',
     lastUpdated: '23 August 2026',
   },
   // CHARACTERISING, NOT ENDORSING: /terms/ publishes NO date and no version.
