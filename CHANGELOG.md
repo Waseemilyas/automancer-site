@@ -1,5 +1,15 @@
 # Release notes
 
+## v2026.08.23.2 — 23 August 2026
+
+Our privacy information now gives a clearer picture of how the website’s security check uses browser storage.
+
+## Privacy
+
+- The privacy notice explains that the security check may use a strictly necessary cookie or similar browser storage.
+- It states that this storage is held under the security provider’s domain rather than Automancer’s.
+
+
 ## v2026.08.23.1 — 23 August 2026
 
 This release makes privacy choices simpler and the site’s data handling easier to understand.
