@@ -43,6 +43,14 @@ const MEASURED_TOTAL: Record<string, number> = {
   '/field-notes/five-signs-spreadsheet-problem/': 203010,
   '/field-notes/manufacturing-order-processing-phone-and-memory-pricing/': 202733,
   '/field-notes/new-business-website-legal-compliance-checklist/': 203297,
+  // Added 2026-08-24 with the week-5.2 field note. Measured on this branch with
+  // `PUBLIC_AUT_SENTRY_WEB_DSN="" pnpm run build` then
+  // `node tests/support/perf-cli.ts --csv`, not estimated from a neighbouring
+  // note. Its html is 20,228 B; the rest is the shared layout payload, which
+  // has drifted up since the 2026-08-22 snapshot (css 50,958 B on this build
+  // vs 48,987 B then), so this row sits above the older field notes for
+  // reasons that have nothing to do with the post's own length.
+  '/field-notes/self-storage-software-what-to-check-before-you-sign/': 203517,
   '/field-notes/small-business-website-cost-2026/': 202450,
   '/field-notes/what-does-an-ai-agent-actually-cost/': 201237,
   '/privacy/': 202665,
