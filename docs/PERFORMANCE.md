@@ -84,6 +84,23 @@ Every layout page now costs ~190–206 KB.
 | `/work/fast-small-business-websites/` | 16,868 | 48,987 | 4,751 | 120,620 | 6,960 | **198,186** |
 | `/work/manufacturer-trade-portal/` | 17,683 | 48,987 | 4,751 | 120,620 | 6,960 | **199,001** |
 
+## Later additions (measured after the 2026-08-22 snapshot)
+
+The two tables above are a snapshot of 2026-08-22 and are not rewritten when a
+page is added. `tests/performance.test.ts` is the live source of truth for
+budgets: pages added since carry their own measured value and a comment saying
+when and how it was taken.
+
+| page | html | css | js | fonts | images | total | measured |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `/field-notes/self-storage-software-what-to-check-before-you-sign/` | 20,228 | 50,958 | 4,751 | 120,620 | 6,960 | **203,517** | 2026-08-24 |
+
+Note the shared layout payload has drifted since 2026-08-22: css is 50,958 B on
+this build against 48,987 B in the table above, so ~2 KB of every "new" page's
+weight is site-wide growth rather than the page itself. Existing pages still sit
+inside their 2%-headroom budgets, so the gate has not been re-derived; when it
+next needs to be, re-measure every page in one pass rather than patching rows.
+
 ## What changed, and why rendering is byte-for-byte identical
 
 ### 1. The 26 font files were really 8 binaries, and half were unreachable
