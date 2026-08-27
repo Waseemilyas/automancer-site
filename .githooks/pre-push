@@ -48,12 +48,17 @@ if [ "${RELEASE_NOTES_SKIP:-0}" != "1" ]; then
       node "$rn" guard --repo "$repo" --ref "$local_sha" || exit 1
     done
   done <<<"$REFS"
-  # git always feeds a pre-push at least one ref line. Zero means an earlier
-  # check in this hook already read stdin, so this guard inspected nothing and
-  # was about to pass every deploy for ever. Fail loudly instead: a guard that
-  # cannot see the refs must not report a clear one.
-  if [ "$seen" -eq 0 ]; then
-    echo "release-notes: this guard received no refs — an earlier check in this pre-push consumed stdin." >&2
+  # A guard that cannot see the refs must not report a clear one. But "no refs"
+  # has two causes and only one is a bug:
+  #   * git offered nothing to push (up to date, or a non-fast-forward it
+  #     rejected before running this hook) — REFS is empty and there is
+  #     genuinely nothing to guard;
+  #   * git offered refs and this loop parsed none of them, which means an
+  #     earlier check consumed stdin and the guard is inspecting thin air.
+  # Fail closed on the second only. Blocking the first is a false alarm that
+  # makes every ordinary behind-origin push look like a guard failure.
+  if [ "$seen" -eq 0 ] && [ -n "${REFS//[[:space:]]/}" ]; then
+    echo "release-notes: git offered refs but this guard parsed none — an earlier check consumed stdin." >&2
     echo "  Move the release-notes block ABOVE it, or capture the ref list once and replay it to both." >&2
     exit 1
   fi
