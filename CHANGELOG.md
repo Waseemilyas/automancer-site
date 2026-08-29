@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.29.1 — 29 August 2026
+
+A new field note helps self-storage teams know what to check before choosing software.
+
+
 ## v2026.08.23.2 — 23 August 2026
 
 Our privacy information now gives a clearer picture of how the website’s security check uses browser storage.
