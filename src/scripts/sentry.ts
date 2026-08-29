@@ -17,5 +17,10 @@ if (import.meta.env.PROD && dsn) {
     sendDefaultPii: false,
     // This project is for error detection. Performance telemetry remains off.
     tracesSampleRate: 0,
+    // @sentry/browser 10.71.0 flipped this default to true. Nothing here calls
+    // Sentry.logger.* or adds a log-forwarding integration, so no logs ship
+    // either way — but the privacy page tells visitors exactly what Sentry
+    // receives, so the default is pinned rather than inherited.
+    enableLogs: false,
   });
 }
