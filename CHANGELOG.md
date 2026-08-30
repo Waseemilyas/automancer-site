@@ -1,5 +1,22 @@
 # Release notes
 
+## v2026.08.30.1 — 30 August 2026
+
+This release makes the site clearer and easier to use across key visitor journeys.
+
+## Improvements
+
+- Navigation links and controls are easier to tap on mobile devices.
+- The site tagline is available to visitors using screen readers.
+- Service labels are easier to read.
+- The terms page displays its publication date.
+
+## Fixes
+
+- Text on the page-not-found screen is easier to read.
+- Contact form errors bring the relevant field into view, so you can see what needs attention.
+
+
 ## v2026.08.29.1 — 29 August 2026
 
 A new field note helps self-storage teams know what to check before choosing software.
