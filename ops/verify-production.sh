@@ -107,9 +107,8 @@ real 404s, llms.txt, sitemap XML, agent.json + security.txt at their
 non-dot paths, homepage footer anchor, TLS certificate.
 
 --self-test proves the checker itself can still fail AND pass: it drives
-every check against a local fixture on 127.0.0.1 (never production) and
-asserts each check goes red under a failing condition and green under a
-passing condition.
+each independently-failable assertion against an isolated local fixture on
+127.0.0.1 (never production) and asserts both failing and passing directions.
 
 <base-url> must be a BARE https origin:
   - https scheme is required (the check suite includes TLS certificate
@@ -354,30 +353,49 @@ with open(path, encoding="utf-8") as fh:
         if sep and key.strip() and key.strip() not in fields:
             fields[key.strip()] = value.strip()
 
-missing = [k for k in ("Contact", "Expires", "Preferred-Languages", "Canonical") if k not in fields]
+missing_contact = "Contact" not in fields
+missing_expires = "Expires" not in fields
+missing_languages = "Preferred-Languages" not in fields
+missing_canonical = "Canonical" not in fields
+missing = [
+    name
+    for name, absent in (
+        ("Contact", missing_contact),
+        ("Expires", missing_expires),
+        ("Preferred-Languages", missing_languages),
+        ("Canonical", missing_canonical),
+    )
+    if absent
+]
 if missing:
     print(f"missing required field(s): {', '.join(missing)}", file=sys.stderr)
     sys.exit(1)
 
-try:
-    expires = datetime.datetime.fromisoformat(fields["Expires"].replace("Z", "+00:00"))
-except ValueError:
-    print(f"Expires \"{fields['Expires']}\" is not a parseable RFC 3339 timestamp", file=sys.stderr)
+expires_value = fields.get("Expires")
+expires = None
+if expires_value is not None:
+    try:
+        expires = datetime.datetime.fromisoformat(expires_value.replace("Z", "+00:00"))
+    except ValueError:
+        pass
+if expires_value is not None and expires is None:
+    print(f"Expires \"{expires_value}\" is not a parseable RFC 3339 timestamp", file=sys.stderr)
     sys.exit(1)
-if expires <= datetime.datetime.now(datetime.timezone.utc):
+if expires is not None and expires <= datetime.datetime.now(datetime.timezone.utc):
     print(
-        f"Expires \"{fields['Expires']}\" is NOT in the future — the document is invalid (RFC 9116 §3.3)",
+        f"Expires \"{expires_value}\" is NOT in the future — the document is invalid (RFC 9116 §3.3)",
         file=sys.stderr,
     )
     sys.exit(1)
 
-if not fields["Canonical"].startswith(("http://", "https://")):
-    print(f"Canonical \"{fields['Canonical']}\" is not an absolute http(s) URL", file=sys.stderr)
+canonical = fields.get("Canonical")
+if canonical is not None and not canonical.startswith(("http://", "https://")):
+    print(f"Canonical \"{canonical}\" is not an absolute http(s) URL", file=sys.stderr)
     sys.exit(1)
 
-if expected_canonical and fields["Canonical"] != expected_canonical:
+if canonical is not None and expected_canonical and canonical != expected_canonical:
     print(
-        f"Canonical \"{fields['Canonical']}\" does not match the served URL \"{expected_canonical}\" "
+        f"Canonical \"{canonical}\" does not match the served URL \"{expected_canonical}\" "
         "- a Canonical that does not resolve makes the file non-conformant",
         file=sys.stderr,
     )
@@ -496,6 +514,10 @@ tls_expiry_ok() {
   (( expiry_epoch > now_epoch + min_days * 86400 ))
 }
 
+parse_tls_expiry() {
+  date -d "${1#notAfter=}" +%s 2>/dev/null
+}
+
 check_tls() {
   # -verify_return_error makes s_client exit non-zero unless the presented
   # chain verifies against the system trust store (expiry, wrong host and
@@ -511,7 +533,7 @@ check_tls() {
     return 1
   fi
   expiry_iso=${endline#notAfter=}
-  expiry_epoch=$(date -d "$expiry_iso" +%s) || {
+  expiry_epoch=$(parse_tls_expiry "$endline") || {
     printf 'could not parse certificate expiry date \"%s\" for %s\n' "$expiry_iso" "$HOST"
     return 1
   }
@@ -561,18 +583,16 @@ preflight() {
 # that can never succeed is as broken, and a dead-address self-test cannot see
 # it — a red check against a dead address looks identical to a correct one.
 #
-# For every check in main(), this mode drives the check twice against a local
-# fixture server bound to 127.0.0.1 only (never 0.0.0.0 — this box is shared):
-#   * FAIL direction — a fixture under which the check MUST fail; assert it
-#     does. A permanently-green check fails this direction.
-#   * PASS direction — a fixture under which the check MUST pass; assert it
-#     does. A permanently-red check fails this direction.
+# Each independently-failable assertion gets an isolated FAIL fixture and a
+# passing control on a server bound to 127.0.0.1 only (never 0.0.0.0 — this box
+# is shared). A permanently-green assertion fails the first direction; a
+# permanently-red assertion fails the second.
 #
-# The TLS check's network half (openssl s_client against system roots) cannot
-# be faked locally — a self-signed fixture is, correctly, untrusted. Its policy
-# (expiry must clear TLS_MIN_DAYS) is extracted into tls_expiry_ok and driven
-# both ways directly; the handshake half is exercised live by deploy.yml,
-# uptime.yml and any ordinary run.
+# The TLS check's trust-chain half (openssl s_client against system roots)
+# cannot have both directions faked locally: a self-signed fixture is,
+# correctly, untrusted. Date parsing and the strict TLS_MIN_DAYS boundary are
+# driven locally; trust-chain verification remains live-only and is exercised
+# by deploy.yml, uptime.yml and every ordinary production run.
 
 find_free_port() {
   python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
@@ -594,9 +614,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         body = entry.get("body", "").encode("utf-8")
         self.send_response(int(entry.get("status", 200)))
         self.send_header("Content-Type", "text/plain; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Length", str(entry.get("declared_length", len(body))))
         self.end_headers()
         self.wfile.write(body)
+        if "declared_length" in entry:
+            self.close_connection = True
     def log_message(self, *args):
         pass
 http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), Handler).serve_forever()
@@ -613,6 +635,20 @@ PY
 # fixtures in turn without a restart.
 self_test_scenario() {
   printf '%s\n' "$1" >"$SELFTEST_SCENARIO"
+}
+
+self_test_route_scenario() {
+  local route=$1 status=$2 body=$3 declared_length=${4:-}
+  body=${body//\\/\\\\}
+  body=${body//\"/\\\"}
+  body=${body//$'\n'/\\n}
+  if [[ -n $declared_length ]]; then
+    printf '{"routes":{"%s":{"status":%s,"body":"%s","declared_length":%s}},"default":{"status":404,"body":""}}\n' \
+      "$route" "$status" "$body" "$declared_length" >"$SELFTEST_SCENARIO"
+  else
+    printf '{"routes":{"%s":{"status":%s,"body":"%s"}},"default":{"status":404,"body":""}}\n' \
+      "$route" "$status" "$body" >"$SELFTEST_SCENARIO"
+  fi
 }
 
 # self_test_expect <expected> <label> <fn> [args...]
@@ -644,7 +680,7 @@ self_test_expect() {
 }
 
 self_test() {
-  local port server_ready i pid
+  local port server_ready i pid canonical_url security_valid security_body
   port=$(find_free_port) || { printf 'SELF-TEST FATAL: cannot find a free local port\n' >&2; exit 3; }
   start_fixture_server "$port"
 
@@ -665,62 +701,166 @@ self_test() {
   HOST='127.0.0.1'
   HOST_PORT="127.0.0.1:${port}"
 
-  log "Self-test: driving 9 checks against a local fixture server on ${BASE_URL}"
-  log "(both directions use fixtures only; the FAIL direction never touches production)"
+  log "Self-test: driving 22 independently-failable assertions across 9 checks on ${BASE_URL}"
+  log "(fixtures use 127.0.0.1 only; the TLS trust-chain assertion remains live-only)"
   log ""
-  # 1. check_route — one function parameterised over 8 routes in main().
-  self_test_scenario '{"routes":{"/":{"status":404,"body":"missing"}},"default":{"status":404,"body":""}}'
-  self_test_expect fail "page / answers 200" check_route "/"
-  self_test_scenario '{"routes":{"/":{"status":200,"body":"ok"}},"default":{"status":404,"body":""}}'
-  self_test_expect pass "page / answers 200" check_route "/"
 
-  # 2. check_not_found — unknown path must be a REAL 404.
+  # Shared HTTP assertions: exercise each implementation branch once, not once per caller.
+  self_test_route_scenario "/" 200 "short" 100
+  self_test_expect fail "HTTP status probe completes its transfer" probe_status "${BASE_URL}/" 200
+  self_test_route_scenario "/" 200 "complete"
+  self_test_expect pass "HTTP status probe completes its transfer" probe_status "${BASE_URL}/" 200
+
+  self_test_route_scenario "/" 418 "teapot"
+  self_test_expect fail "HTTP status probe enforces the expected final status" probe_status "${BASE_URL}/" 200
+  self_test_route_scenario "/" 200 "ok"
+  self_test_expect pass "HTTP status probe enforces the expected final status" probe_status "${BASE_URL}/" 200
+
+  self_test_route_scenario "/" 404 "missing"
+  self_test_expect fail "page check requires HTTP 200" check_route "/"
+  self_test_route_scenario "/" 200 "ok"
+  self_test_expect pass "page check requires HTTP 200" check_route "/"
+
   self_test_scenario '{"routes":{},"default":{"status":200,"body":"soft 404 page"}}'
-  self_test_expect fail "unknown path answers a REAL 404 (not a soft 404)" check_not_found
+  self_test_expect fail "unknown-path check requires a real HTTP 404" check_not_found
   self_test_scenario '{"routes":{},"default":{"status":404,"body":""}}'
-  self_test_expect pass "unknown path answers a REAL 404 (not a soft 404)" check_not_found
+  self_test_expect pass "unknown-path check requires a real HTTP 404" check_not_found
 
-  # 3. check_llms_txt — 200 with a non-empty body.
-  self_test_scenario '{"routes":{"/llms.txt":{"status":200,"body":""}},"default":{"status":404,"body":""}}'
-  self_test_expect fail "/llms.txt answers 200 with a non-empty body" check_llms_txt
-  self_test_scenario '{"routes":{"/llms.txt":{"status":200,"body":"# automancer"}},"default":{"status":404,"body":""}}'
-  self_test_expect pass "/llms.txt answers 200 with a non-empty body" check_llms_txt
+  self_test_route_scenario "/body" 200 "short" 100
+  self_test_expect fail "body fetch completes its transfer" fetch_body "${BASE_URL}/body"
+  self_test_route_scenario "/body" 200 "complete"
+  self_test_expect pass "body fetch completes its transfer" fetch_body "${BASE_URL}/body"
 
-  # 4. check_sitemap — 200 and well-formed XML.
-  self_test_scenario '{"routes":{"/sitemap-index.xml":{"status":200,"body":"this is not xml"}},"default":{"status":404,"body":""}}'
-  self_test_expect fail "/sitemap-index.xml answers 200 and parses as XML" check_sitemap
-  self_test_scenario '{"routes":{"/sitemap-index.xml":{"status":200,"body":"<sitemapindex><sitemap><loc>https://automancer.uk/sitemap-0.xml</loc></sitemap></sitemapindex>"}},"default":{"status":404,"body":""}}'
-  self_test_expect pass "/sitemap-index.xml answers 200 and parses as XML" check_sitemap
+  self_test_route_scenario "/body" 404 "complete"
+  self_test_expect fail "body fetch requires HTTP 200" fetch_body "${BASE_URL}/body"
+  self_test_route_scenario "/body" 200 "complete"
+  self_test_expect pass "body fetch requires HTTP 200" fetch_body "${BASE_URL}/body"
 
-  # 5. check_agent_manifest — 200 and valid JSON.
-  self_test_scenario '{"routes":{"/agent.json":{"status":200,"body":"{ not json"}},"default":{"status":404,"body":""}}'
-  self_test_expect fail "/agent.json answers 200 and parses as JSON" check_agent_manifest
-  self_test_scenario '{"routes":{"/agent.json":{"status":200,"body":"{}"}},"default":{"status":404,"body":""}}'
-  self_test_expect pass "/agent.json answers 200 and parses as JSON" check_agent_manifest
+  # Content assertions. Every fail fixture changes one rule from its valid control.
+  self_test_route_scenario "/llms.txt" 200 ""
+  self_test_expect fail "llms.txt body is non-empty" check_llms_txt
+  self_test_route_scenario "/llms.txt" 200 "# automancer"
+  self_test_expect pass "llms.txt body is non-empty" check_llms_txt
 
-  # 6. check_security_txt — 200 and RFC 9116 conformant.
-  self_test_scenario '{"routes":{"/security.txt":{"status":200,"body":"Contact: mailto:security@automancer.uk\nExpires: 2020-01-01T00:00:00Z\n"}},"default":{"status":404,"body":""}}'
-  self_test_expect fail "/security.txt answers 200 and satisfies RFC 9116" check_security_txt
-  self_test_scenario '{"routes":{"/security.txt":{"status":200,"body":"Contact: mailto:security@automancer.uk\nExpires: 2099-01-01T00:00:00Z\nPreferred-Languages: en\nCanonical: https://automancer.uk/security.txt\n"}},"default":{"status":404,"body":""}}'
-  self_test_expect pass "/security.txt answers 200 and satisfies RFC 9116" check_security_txt
+  self_test_route_scenario "/sitemap-index.xml" 200 "this is not xml"
+  self_test_expect fail "sitemap is well-formed XML" check_sitemap
+  self_test_route_scenario "/sitemap-index.xml" 200 "<sitemapindex><sitemap><loc>https://automancer.uk/sitemap-0.xml</loc></sitemap></sitemapindex>"
+  self_test_expect pass "sitemap is well-formed XML" check_sitemap
 
-  # 7. check_homepage_anchor — the structural string is present.
-  self_test_scenario '{"routes":{"/":{"status":200,"body":"<html><body>nothing to see</body></html>"}},"default":{"status":404,"body":""}}'
-  self_test_expect fail "homepage contains structural anchor" check_homepage_anchor
-  self_test_scenario '{"routes":{"/":{"status":200,"body":"<html><body>Company No. 17060907</body></html>"}},"default":{"status":404,"body":""}}'
-  self_test_expect pass "homepage contains structural anchor" check_homepage_anchor
+  self_test_route_scenario "/agent.json" 200 "{ not json"
+  self_test_expect fail "agent manifest is valid JSON" check_agent_manifest
+  self_test_route_scenario "/agent.json" 200 "{}"
+  self_test_expect pass "agent manifest is valid JSON" check_agent_manifest
 
-  # 8. check_sentry_live — bundle carries an ingest DSN.
-  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"no sentry ingest here"}},"default":{"status":404,"body":""}}'
-  self_test_expect fail "error monitoring is live (Sentry DSN present in the bundle)" check_sentry_live
+  canonical_url="${BASE_URL}${SECURITY_TXT_PATH}"
+  security_valid="Contact: mailto:security@automancer.uk
+Expires: 2099-01-01T00:00:00Z
+Preferred-Languages: en
+Canonical: ${canonical_url}
+"
+  HOST='automancer.uk'
+
+  security_body="Expires: 2099-01-01T00:00:00Z
+Preferred-Languages: en
+Canonical: ${canonical_url}
+"
+  self_test_route_scenario "/security.txt" 200 "$security_body"
+  self_test_expect fail "security.txt requires Contact" check_security_txt
+  self_test_route_scenario "/security.txt" 200 "$security_valid"
+  self_test_expect pass "security.txt requires Contact" check_security_txt
+
+  security_body="Contact: mailto:security@automancer.uk
+Preferred-Languages: en
+Canonical: ${canonical_url}
+"
+  self_test_route_scenario "/security.txt" 200 "$security_body"
+  self_test_expect fail "security.txt requires Expires" check_security_txt
+  self_test_route_scenario "/security.txt" 200 "$security_valid"
+  self_test_expect pass "security.txt requires Expires" check_security_txt
+
+  security_body="Contact: mailto:security@automancer.uk
+Expires: 2099-01-01T00:00:00Z
+Canonical: ${canonical_url}
+"
+  self_test_route_scenario "/security.txt" 200 "$security_body"
+  self_test_expect fail "security.txt requires Preferred-Languages" check_security_txt
+  self_test_route_scenario "/security.txt" 200 "$security_valid"
+  self_test_expect pass "security.txt requires Preferred-Languages" check_security_txt
+
+  security_body="Contact: mailto:security@automancer.uk
+Expires: 2099-01-01T00:00:00Z
+Preferred-Languages: en
+"
+  self_test_route_scenario "/security.txt" 200 "$security_body"
+  self_test_expect fail "security.txt requires Canonical" check_security_txt
+  self_test_route_scenario "/security.txt" 200 "$security_valid"
+  self_test_expect pass "security.txt requires Canonical" check_security_txt
+
+  security_body="Contact: mailto:security@automancer.uk
+Expires: not-a-date
+Preferred-Languages: en
+Canonical: ${canonical_url}
+"
+  self_test_route_scenario "/security.txt" 200 "$security_body"
+  self_test_expect fail "security.txt Expires is parseable" check_security_txt
+  self_test_route_scenario "/security.txt" 200 "$security_valid"
+  self_test_expect pass "security.txt Expires is parseable" check_security_txt
+
+  security_body="Contact: mailto:security@automancer.uk
+Expires: 2020-01-01T00:00:00Z
+Preferred-Languages: en
+Canonical: ${canonical_url}
+"
+  self_test_route_scenario "/security.txt" 200 "$security_body"
+  self_test_expect fail "security.txt Expires is in the future" check_security_txt
+  self_test_route_scenario "/security.txt" 200 "$security_valid"
+  self_test_expect pass "security.txt Expires is in the future" check_security_txt
+
+  HOST='127.0.0.1'
+  security_body="Contact: mailto:security@automancer.uk
+Expires: 2099-01-01T00:00:00Z
+Preferred-Languages: en
+Canonical: /security.txt
+"
+  self_test_route_scenario "/security.txt" 200 "$security_body"
+  self_test_expect fail "security.txt Canonical is an absolute HTTP(S) URL" check_security_txt
+  self_test_route_scenario "/security.txt" 200 "$security_valid"
+  self_test_expect pass "security.txt Canonical is an absolute HTTP(S) URL" check_security_txt
+
+  HOST='automancer.uk'
+  security_body="Contact: mailto:security@automancer.uk
+Expires: 2099-01-01T00:00:00Z
+Preferred-Languages: en
+Canonical: https://example.com/security.txt
+"
+  self_test_route_scenario "/security.txt" 200 "$security_body"
+  self_test_expect fail "security.txt Canonical matches the served URL" check_security_txt
+  self_test_route_scenario "/security.txt" 200 "$security_valid"
+  self_test_expect pass "security.txt Canonical matches the served URL" check_security_txt
+  HOST='127.0.0.1'
+
+  self_test_route_scenario "/" 200 "<html><body>nothing to see</body></html>"
+  self_test_expect fail "homepage contains its structural anchor" check_homepage_anchor
+  self_test_route_scenario "/" 200 "<html><body>Company No. 17060907</body></html>"
+  self_test_expect pass "homepage contains its structural anchor" check_homepage_anchor
+
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<html><body>no bundle reference</body></html>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "homepage exposes an Astro JavaScript bundle" check_sentry_live
   self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
-  self_test_expect pass "error monitoring is live (Sentry DSN present in the bundle)" check_sentry_live
+  self_test_expect pass "homepage exposes an Astro JavaScript bundle" check_sentry_live
 
-  # 9. check_tls — the expiry policy (network half is live-only, see above).
-  self_test_expect fail "TLS certificate expires >${TLS_MIN_DAYS} days out (policy)" \
-    tls_expiry_ok "$(date -d '+10 days' +%s)" "$TLS_MIN_DAYS"
-  self_test_expect pass "TLS certificate expires >${TLS_MIN_DAYS} days out (policy)" \
-    tls_expiry_ok "$(date -d '+100 days' +%s)" "$TLS_MIN_DAYS"
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"no DSN here"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "bundle contains a Sentry ingest DSN" check_sentry_live
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "bundle contains a Sentry ingest DSN" check_sentry_live
+
+  self_test_expect fail "TLS certificate expiry date is parseable" parse_tls_expiry "notAfter=not-a-date"
+  self_test_expect pass "TLS certificate expiry date is parseable" parse_tls_expiry "notAfter=Jan 1 00:00:00 2099 GMT"
+
+  self_test_expect fail "TLS certificate expiry is strictly more than ${TLS_MIN_DAYS} days away" \
+    tls_expiry_ok "$((2000000000 + TLS_MIN_DAYS * 86400))" "$TLS_MIN_DAYS" 2000000000
+  self_test_expect pass "TLS certificate expiry is strictly more than ${TLS_MIN_DAYS} days away" \
+    tls_expiry_ok "$((2000000000 + TLS_MIN_DAYS * 86400 + 1))" "$TLS_MIN_DAYS" 2000000000
 
   # Tear the fixture server down by pid and prove it is gone.
   pid=$SELFTEST_SERVER_PID
@@ -743,9 +883,8 @@ self_test() {
     for i in "${SELF_TEST_FAILURES[@]}"; do log "  - $i"; done
     exit 1
   fi
-  log "SELF-TEST RESULT: all 9 checks can fail AND can pass."
+  log "SELF-TEST RESULT: all 22 locally isolatable assertions across 9 checks can fail AND can pass."
 }
-
 main() {
   if [[ ${1:-} == '--self-test' ]]; then
     [[ $# -eq 1 ]] || arg_error "--self-test takes no arguments (got $#)"
@@ -763,9 +902,8 @@ main() {
   # records each failure in FAILED_CHECKS; the summary below decides the
   # exit status.
   #
-  # Every check below has a matching fail+pass fixture in self_test(). Add a
-  # check here and you must add it there too, or the self-test will keep
-  # claiming "all N checks" while silently not covering the new one.
+  # Every independently-failable assertion below has an isolated fail+pass
+  # fixture in self_test(). Add an assertion here and add its fixture there.
   local route
   for route in "${ROUTES[@]}"; do
     if ! poll_check "page ${route} answers 200" check_route "$route"; then :; fi
