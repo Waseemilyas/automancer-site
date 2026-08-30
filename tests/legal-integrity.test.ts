@@ -44,26 +44,16 @@ const PINNED: Record<string, { sha256: string; lastUpdated: string | null }> = {
     sha256: 'cf3a28bc8dd8928449e6c32cc5227a05135f6289d89470cc0f7a851565b046b8',
     lastUpdated: '23 August 2026',
   },
-  // CHARACTERISING, NOT ENDORSING: /terms/ publishes NO date and no version.
-  // src/data/site-content.ts records no lastUpdated for it, unlike /privacy/.
-  //
-  // That means a visitor cannot tell which version of the Terms of Use binds
-  // them, and we cannot evidence what the terms said on a given date except by
-  // reading git. The privacy notice does not have this problem.
-  //
-  // NOT FIXED HERE ON PURPOSE. Publishing a date requires deciding WHICH date
-  // is truthful — when the terms last changed in substance — and that is a
-  // judgement about a legal document, not a code change to make at 02:35
-  // unattended. Two options for whoever picks this up:
-  //   (a) add lastUpdated to the /terms/ entry in src/data/site-content.ts and
-  //       render it as /privacy/ does — simplest, and matches the sibling page;
-  //   (b) decide the terms are undated by design, and record that reasoning
-  //       here so the next person does not re-raise it.
-  // This test pins the current wording either way, so the terms cannot change
-  // silently while the question is open.
+  // Date derived 2026-08-30 for q-auto-acf7. `git log -1 --format=%cs --
+  // src/pages/terms.astro` returns 2026-08-21, but that commit (d412e77) only
+  // lengthened the meta description. The terms body has been unchanged since
+  // 2026-07-03 (1f74245, the Astro rebuild that introduced this copy). The
+  // published date is the substance date, matching how /privacy/ treats
+  // lastUpdated — a meta-description tweak is not a revision of the terms.
+  // Rendered as a visible "Last updated" line plus <time datetime="2026-07-03">.
   '/terms/': {
-    sha256: '8ce324e93907a3cd8605aeda412cbfa3c6bf2028bcf2d23ca03c238e76ad0f8f',
-    lastUpdated: null,
+    sha256: 'b1c33750001a2ab65a94f61b5766c1e12909aebd7bcb730a32ff77d90a855118',
+    lastUpdated: '3 July 2026',
   },
 };
 
