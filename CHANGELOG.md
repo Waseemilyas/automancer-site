@@ -8,7 +8,6 @@ This release makes the site clearer and easier to use across key visitor journey
 
 - Navigation links and controls are easier to tap on mobile devices.
 - The site tagline is available to visitors using screen readers.
-- Service labels are easier to read.
 - The terms page displays its publication date.
 
 ## Fixes
