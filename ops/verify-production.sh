@@ -59,6 +59,11 @@ HOST_PORT=''  # hostname[:port]
 
 FAILED_CHECKS=()
 
+# --self-test state (see self_test below); empty when not self-testing.
+SELF_TEST_FAILURES=()
+SELFTEST_SERVER_PID=''   # PID of the local fixture server, killed by cleanup
+SELFTEST_SCENARIO=''     # scenario file the fixture server reloads per request
+
 # --- scratch-file lifecycle ----------------------------------------------
 # ALL scratch files live in ONE directory, created up front and removed as a
 # unit by the trap below on EVERY exit path: clean exit, check failures,
@@ -74,6 +79,7 @@ RUN_TMP_DIR=''
 cleanup() {
   local rc=$?
   trap - EXIT INT TERM
+  [[ -z $SELFTEST_SERVER_PID ]] || kill "$SELFTEST_SERVER_PID" 2>/dev/null
   [[ -z $RUN_TMP_DIR ]] || rm -rf -- "$RUN_TMP_DIR"
   return "$rc"
 }
@@ -94,10 +100,16 @@ log() { printf '%s\n' "$*"; }
 usage() {
   cat >&2 <<'EOF'
 Usage: ops/verify-production.sh <base-url>
+       ops/verify-production.sh --self-test
 
 Verify that a deployed Automancer site serves correctly: page statuses,
 real 404s, llms.txt, sitemap XML, agent.json + security.txt at their
 non-dot paths, homepage footer anchor, TLS certificate.
+
+--self-test proves the checker itself can still fail AND pass: it drives
+every check against a local fixture on 127.0.0.1 (never production) and
+asserts each check goes red under a failing condition and green under a
+passing condition.
 
 <base-url> must be a BARE https origin:
   - https scheme is required (the check suite includes TLS certificate
@@ -110,6 +122,7 @@ non-dot paths, homepage footer anchor, TLS certificate.
 Examples:
   ops/verify-production.sh https://automancer.uk         # production
   ops/verify-production.sh https://preview.example.org   # a preview deploy
+  ops/verify-production.sh --self-test                   # the checker checks itself
 EOF
 }
 
@@ -472,11 +485,22 @@ check_sentry_live() {
   rm -f "$BODY_FILE"
 }
 
+# tls_expiry_ok <expiry-epoch> <min-days> [now-epoch]
+# The TLS expiry POLICY in isolation: is the certificate still valid MORE THAN
+# min_days out from now? Extracted from check_tls so --self-test can drive both
+# directions without a network — the handshake half of check_tls needs a real
+# trust store, which a local fixture cannot provide. Returns 0 when the expiry
+# clears the threshold, 1 when it does not.
+tls_expiry_ok() {
+  local expiry_epoch=$1 min_days=$2 now_epoch=${3:-$(date +%s)}
+  (( expiry_epoch > now_epoch + min_days * 86400 ))
+}
+
 check_tls() {
   # -verify_return_error makes s_client exit non-zero unless the presented
   # chain verifies against the system trust store (expiry, wrong host and
   # untrusted roots all land here).
-  local endline expiry_iso expiry_epoch now_epoch min_epoch days_left
+  local endline expiry_iso expiry_epoch now_epoch days_left
   local tls_target="$HOST_PORT"
   case "$tls_target" in
     *:*) : ;;                 # explicit port already present
@@ -492,9 +516,8 @@ check_tls() {
     return 1
   }
   now_epoch=$(date +%s)
-  min_epoch=$((now_epoch + TLS_MIN_DAYS * 86400))
   days_left=$(( (expiry_epoch - now_epoch) / 86400 ))
-  if (( expiry_epoch <= min_epoch )); then
+  if ! tls_expiry_ok "$expiry_epoch" "$TLS_MIN_DAYS" "$now_epoch"; then
     printf 'certificate for %s expires %s — only %s day(s) out, renewal threshold is MORE THAN %s days\n' \
       "$HOST" "$expiry_iso" "$days_left" "$TLS_MIN_DAYS"
     return 1
@@ -529,7 +552,207 @@ preflight() {
   rm -f "$probe"
 }
 
+# --- self-test ------------------------------------------------------------
+#
+# `--self-test` proves the checker itself can still fail AND can still pass.
+# A check that can no longer fail is worse than no check: deploy.yml and
+# uptime.yml both call THIS script, so a silently-green check mutes the deploy
+# gate and the uptime monitor at once (measured defect, 2026-08-30). A check
+# that can never succeed is as broken, and a dead-address self-test cannot see
+# it — a red check against a dead address looks identical to a correct one.
+#
+# For every check in main(), this mode drives the check twice against a local
+# fixture server bound to 127.0.0.1 only (never 0.0.0.0 — this box is shared):
+#   * FAIL direction — a fixture under which the check MUST fail; assert it
+#     does. A permanently-green check fails this direction.
+#   * PASS direction — a fixture under which the check MUST pass; assert it
+#     does. A permanently-red check fails this direction.
+#
+# The TLS check's network half (openssl s_client against system roots) cannot
+# be faked locally — a self-signed fixture is, correctly, untrusted. Its policy
+# (expiry must clear TLS_MIN_DAYS) is extracted into tls_expiry_ok and driven
+# both ways directly; the handshake half is exercised live by deploy.yml,
+# uptime.yml and any ordinary run.
+
+find_free_port() {
+  python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
+}
+
+# start_fixture_server <port> — write and launch the local fixture server.
+start_fixture_server() {
+  local server_file=$RUN_TMP_DIR/selftest-server.py
+  cat >"$server_file" <<'PY'
+import http.server, json, os, sys
+SCENARIO = os.environ["SELFTEST_SCENARIO"]
+def load():
+    with open(SCENARIO, encoding="utf-8") as fh:
+        return json.load(fh)
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        sc = load()
+        entry = sc.get("routes", {}).get(self.path, sc.get("default", {"status": 404, "body": ""}))
+        body = entry.get("body", "").encode("utf-8")
+        self.send_response(int(entry.get("status", 200)))
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *args):
+        pass
+http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), Handler).serve_forever()
+PY
+  SELFTEST_SCENARIO=$RUN_TMP_DIR/selftest-scenario.json
+  export SELFTEST_SCENARIO
+  printf '{"routes":{},"default":{"status":404,"body":""}}\n' >"$SELFTEST_SCENARIO"
+  python3 "$server_file" "$1" &
+  SELFTEST_SERVER_PID=$!
+}
+
+# self_test_scenario <json> — replace the fixture server's response map. The
+# server re-reads this file on every request, so one server serves all 18
+# fixtures in turn without a restart.
+self_test_scenario() {
+  printf '%s\n' "$1" >"$SELFTEST_SCENARIO"
+}
+
+# self_test_expect <expected> <label> <fn> [args...]
+# Run one check directly (no poll_check retry budget) and assert its result is
+# the expected direction. Records a failure in SELF_TEST_FAILURES and always
+# returns 0 so a red direction never aborts the whole self-test under set -e.
+self_test_expect() {
+  local expected=$1 label=$2 fn=$3
+  shift 3
+  local detail rc=0 first
+  if detail=$("$fn" "$@" 2>&1); then rc=0; else rc=$?; fi
+  first=$(printf '%s\n' "$detail" | head -1)
+  [[ -n $first ]] || first='(no output)'
+  if [[ $expected == fail ]]; then
+    if (( rc == 0 )); then
+      log "SELFTEST FAIL  ${label} — expected to FAIL but PASSED: ${first}"
+      SELF_TEST_FAILURES+=("${label} (fail direction)")
+    else
+      log "SELFTEST PASS  ${label} — fails as it must: ${first}"
+    fi
+  else
+    if (( rc != 0 )); then
+      log "SELFTEST FAIL  ${label} — expected to PASS but FAILED: ${first}"
+      SELF_TEST_FAILURES+=("${label} (pass direction)")
+    else
+      log "SELFTEST PASS  ${label} — passes as it must: ${first}"
+    fi
+  fi
+}
+
+self_test() {
+  local port server_ready i pid
+  port=$(find_free_port) || { printf 'SELF-TEST FATAL: cannot find a free local port\n' >&2; exit 3; }
+  start_fixture_server "$port"
+
+  server_ready=0
+  for i in $(seq 1 50); do
+    if curl -sS -o /dev/null --max-time 2 "http://127.0.0.1:${port}/" 2>/dev/null; then
+      server_ready=1
+      break
+    fi
+    sleep 0.1
+  done
+  if (( server_ready == 0 )); then
+    printf 'SELF-TEST FATAL: fixture server on 127.0.0.1:%s did not come up\n' "$port" >&2
+    exit 3
+  fi
+
+  BASE_URL="http://127.0.0.1:${port}"
+  HOST='127.0.0.1'
+  HOST_PORT="127.0.0.1:${port}"
+
+  log "Self-test: driving 9 checks against a local fixture server on ${BASE_URL}"
+  log "(both directions use fixtures only; the FAIL direction never touches production)"
+  log ""
+  # 1. check_route — one function parameterised over 8 routes in main().
+  self_test_scenario '{"routes":{"/":{"status":404,"body":"missing"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "page / answers 200" check_route "/"
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"ok"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "page / answers 200" check_route "/"
+
+  # 2. check_not_found — unknown path must be a REAL 404.
+  self_test_scenario '{"routes":{},"default":{"status":200,"body":"soft 404 page"}}'
+  self_test_expect fail "unknown path answers a REAL 404 (not a soft 404)" check_not_found
+  self_test_scenario '{"routes":{},"default":{"status":404,"body":""}}'
+  self_test_expect pass "unknown path answers a REAL 404 (not a soft 404)" check_not_found
+
+  # 3. check_llms_txt — 200 with a non-empty body.
+  self_test_scenario '{"routes":{"/llms.txt":{"status":200,"body":""}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "/llms.txt answers 200 with a non-empty body" check_llms_txt
+  self_test_scenario '{"routes":{"/llms.txt":{"status":200,"body":"# automancer"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "/llms.txt answers 200 with a non-empty body" check_llms_txt
+
+  # 4. check_sitemap — 200 and well-formed XML.
+  self_test_scenario '{"routes":{"/sitemap-index.xml":{"status":200,"body":"this is not xml"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "/sitemap-index.xml answers 200 and parses as XML" check_sitemap
+  self_test_scenario '{"routes":{"/sitemap-index.xml":{"status":200,"body":"<sitemapindex><sitemap><loc>https://automancer.uk/sitemap-0.xml</loc></sitemap></sitemapindex>"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "/sitemap-index.xml answers 200 and parses as XML" check_sitemap
+
+  # 5. check_agent_manifest — 200 and valid JSON.
+  self_test_scenario '{"routes":{"/agent.json":{"status":200,"body":"{ not json"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "/agent.json answers 200 and parses as JSON" check_agent_manifest
+  self_test_scenario '{"routes":{"/agent.json":{"status":200,"body":"{}"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "/agent.json answers 200 and parses as JSON" check_agent_manifest
+
+  # 6. check_security_txt — 200 and RFC 9116 conformant.
+  self_test_scenario '{"routes":{"/security.txt":{"status":200,"body":"Contact: mailto:security@automancer.uk\nExpires: 2020-01-01T00:00:00Z\n"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "/security.txt answers 200 and satisfies RFC 9116" check_security_txt
+  self_test_scenario '{"routes":{"/security.txt":{"status":200,"body":"Contact: mailto:security@automancer.uk\nExpires: 2099-01-01T00:00:00Z\nPreferred-Languages: en\nCanonical: https://automancer.uk/security.txt\n"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "/security.txt answers 200 and satisfies RFC 9116" check_security_txt
+
+  # 7. check_homepage_anchor — the structural string is present.
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<html><body>nothing to see</body></html>"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "homepage contains structural anchor" check_homepage_anchor
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<html><body>Company No. 17060907</body></html>"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "homepage contains structural anchor" check_homepage_anchor
+
+  # 8. check_sentry_live — bundle carries an ingest DSN.
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"no sentry ingest here"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "error monitoring is live (Sentry DSN present in the bundle)" check_sentry_live
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "error monitoring is live (Sentry DSN present in the bundle)" check_sentry_live
+
+  # 9. check_tls — the expiry policy (network half is live-only, see above).
+  self_test_expect fail "TLS certificate expires >${TLS_MIN_DAYS} days out (policy)" \
+    tls_expiry_ok "$(date -d '+10 days' +%s)" "$TLS_MIN_DAYS"
+  self_test_expect pass "TLS certificate expires >${TLS_MIN_DAYS} days out (policy)" \
+    tls_expiry_ok "$(date -d '+100 days' +%s)" "$TLS_MIN_DAYS"
+
+  # Tear the fixture server down by pid and prove it is gone.
+  pid=$SELFTEST_SERVER_PID
+  kill "$pid" 2>/dev/null
+  SELFTEST_SERVER_PID=''
+  for i in $(seq 1 50); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    printf 'SELF-TEST FATAL: fixture server (pid %s) refused to stop\n' "$pid" >&2
+    exit 3
+  fi
+  log ""
+  log "Fixture server on 127.0.0.1:${port} (pid ${pid}) stopped and gone."
+
+  log ""
+  if (( ${#SELF_TEST_FAILURES[@]} > 0 )); then
+    log "SELF-TEST RESULT: ${#SELF_TEST_FAILURES[@]} direction(s) FAILED:"
+    for i in "${SELF_TEST_FAILURES[@]}"; do log "  - $i"; done
+    exit 1
+  fi
+  log "SELF-TEST RESULT: all 9 checks can fail AND can pass."
+}
+
 main() {
+  if [[ ${1:-} == '--self-test' ]]; then
+    [[ $# -eq 1 ]] || arg_error "--self-test takes no arguments (got $#)"
+    preflight
+    self_test
+    return
+  fi
   validate_base_url "$@"
   preflight
   log "Verifying ${BASE_URL} (each check retries for up to ${DEADLINE_SECS}s before failing)"
@@ -539,6 +762,10 @@ main() {
   # report EVERYTHING that is wrong, not just the first thing. poll_check
   # records each failure in FAILED_CHECKS; the summary below decides the
   # exit status.
+  #
+  # Every check below has a matching fail+pass fixture in self_test(). Add a
+  # check here and you must add it there too, or the self-test will keep
+  # claiming "all N checks" while silently not covering the new one.
   local route
   for route in "${ROUTES[@]}"; do
     if ! poll_check "page ${route} answers 200" check_route "$route"; then :; fi
