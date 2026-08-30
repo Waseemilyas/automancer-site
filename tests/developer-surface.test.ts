@@ -387,6 +387,15 @@ describe('404 page — machine-readable recovery block', () => {
     expect(notFound.html, '404 page lost the contact route').toContain(businessEmail());
   });
 
+  it('offers the human section list before the agent-recovery block', () => {
+    const html = notFound.html;
+    const human = html.indexOf('Where were you heading?');
+    const agent = html.indexOf('id="agent-recovery"');
+    expect(human, 'human recovery heading missing from 404.html').toBeGreaterThan(-1);
+    expect(agent, '#agent-recovery missing from 404.html').toBeGreaterThan(-1);
+    expect(human, 'agent-recovery still precedes the human section list').toBeLessThan(agent);
+  });
+
   /** The published mailbox, straight from the single source of truth. */
   function businessEmail(): string {
     return (

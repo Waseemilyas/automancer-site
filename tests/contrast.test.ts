@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contentPages, readDistFile } from './support/dist';
+import { allHtmlFiles, contentPages, readDistFile } from './support/dist';
 
 const services = contentPages().find((page) => page.route === '/services/');
 const stylesheet = services?.doc.querySelector('link[rel="stylesheet"][href^="/_astro/"]')?.getAttribute('href');
@@ -47,5 +47,66 @@ describe('services offer labels', () => {
   ])('meets WCAG AA on the %s offer sections', (_name, textSelector, surfaceSelector) => {
     const ratio = contrast(declaration(textSelector, 'color'), declaration(surfaceSelector, 'background'));
     expect(ratio, `${textSelector} contrast is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('muted body-secondary on paper vs dark', () => {
+  it.each([
+    ['paper', '.on-paper .muted', '.on-paper'],
+    ['near', '.muted', '.on-near'],
+    ['dark', '.muted', '.on-dark'],
+  ])('meets WCAG AA on the %s surface', (_name, textSelector, surfaceSelector) => {
+    const ratio = contrast(declaration(textSelector, 'color'), declaration(surfaceSelector, 'background'));
+    expect(ratio, `${textSelector} on ${surfaceSelector} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the dark-surface --muted token on paper is the 2.33:1 pair this gate exists to catch', () => {
+    // Positive control: the failing pair really is below AA, so a usage
+    // check that forbids it is about this pair, not a broken instrument.
+    const ratio = contrast('var(--muted)', declaration('.on-paper', 'background'));
+    expect(ratio, `--muted on paper is ${ratio.toFixed(2)}:1 — expected below 4.5`).toBeLessThan(4.5);
+  });
+});
+
+describe('404 recovery descriptions never paint --muted onto paper', () => {
+  const INLINE_MUTED = /color\s*:\s*var\(--muted\)/;
+
+  it('paper-section description spans use the muted class, not an inline dark-surface token', () => {
+    const page = allHtmlFiles().find((p) => p.is404);
+    expect(page, 'dist/404.html missing').toBeTruthy();
+    const paperSections = page!.doc.querySelectorAll('.on-paper');
+    expect(paperSections.length, '404 lost its paper sections').toBeGreaterThan(0);
+    let spans = 0;
+    for (const section of paperSections) {
+      for (const span of section.querySelectorAll('li span')) {
+        spans += 1;
+        const style = span.getAttribute('style') ?? '';
+        expect(
+          style,
+          `404 paper span still inlines the dark-surface token: "${style}"`
+        ).not.toMatch(INLINE_MUTED);
+        const cls = span.getAttribute('class') ?? '';
+        expect(cls.split(/\s+/).includes('muted'), `404 paper span has class "${cls}"`).toBe(true);
+      }
+    }
+    expect(spans, 'no 404 paper description spans — this assertion examined nothing').toBeGreaterThan(0);
+  });
+
+  it('no page inlines color:var(--muted) inside a paper surface', () => {
+    let examined = 0;
+    for (const page of allHtmlFiles()) {
+      if (page.isRedirectStub) continue;
+      for (const paper of page.doc.querySelectorAll('.on-paper, .on-paper-2')) {
+        for (const el of paper.querySelectorAll('[style]')) {
+          examined += 1;
+          const style = el.getAttribute('style') ?? '';
+          expect(
+            INLINE_MUTED.test(style),
+            `${page.route}: ${el.tagName.toLowerCase()} inlines --muted on paper ("${style}")`
+          ).toBe(false);
+        }
+      }
+    }
+    expect(examined, 'no inlined styles on paper — instrument saw nothing').toBeGreaterThan(0);
   });
 });

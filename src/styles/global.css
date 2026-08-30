@@ -292,7 +292,9 @@ strong { font-weight: 600; color: inherit; }
 .nav__link[aria-current="page"]::after { transform: scaleX(1); animation: spectral-pan 6s linear infinite; }
 .nav__link[aria-current="page"] { color: var(--white); }
 
-.hamburger { display: none; flex-direction: column; gap: 6px; padding: var(--sp-2); z-index: 2; }
+/* Hit target is 44×44 (Apple HIG). WCAG 2.2 AA's floor is 24px — this is
+   comfort, not a contrast/AA violation. The three bars stay 26×2. */
+.hamburger { display: none; flex-direction: column; justify-content: center; align-items: center; gap: 6px; padding: var(--sp-2); min-width: 44px; min-height: 44px; z-index: 2; }
 .hamburger span { display: block; width: 26px; height: 2px; background: var(--white);
   transition: transform var(--dur-2) var(--ease-out-expo), opacity var(--dur-1); }
 .hamburger[aria-expanded="true"] span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
@@ -476,6 +478,23 @@ strong { font-weight: 600; color: inherit; }
 }
 .hero__ctas { order: 6; display: flex; flex-wrap: wrap; gap: var(--sp-4); margin-top: var(--sp-10);
   animation: reveal-up 1s var(--ease-out-expo) .72s both; }
+
+/* At 375 both CTAs are primary paths. 100svh plus the type stack pushed
+   "See the work" below the fold. Shorten the phone hero rather than assume
+   a scroll. Desktop keeps the full-viewport hero. */
+@media (max-width: 480px) {
+  .hero {
+    min-height: unset;
+    padding-top: 4rem;
+    padding-bottom: var(--sp-6);
+  }
+  .hero .eyebrow { margin-bottom: 0; }
+  .hero__headline,
+  .hero__reveal,
+  .hero__body { margin-top: var(--sp-3); }
+  .hero__typed { margin-top: var(--sp-3); padding-top: var(--sp-3); }
+  .hero__ctas { margin-top: var(--sp-4); }
+}
 
 /* Fold accent — one composed moment: a spectral hairline frames the bottom of
    the viewport and the cue bead drops onto it. Decorative only. */

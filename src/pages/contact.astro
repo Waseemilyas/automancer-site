@@ -191,7 +191,34 @@ const steps = [
         errEl.textContent = msg;
         errEl.style.display = 'block';
       }
-      function clearError() { errEl.style.display = 'none'; errEl.textContent = ''; }
+      function clearFieldErrors() {
+        var controls = [form.name, form.email, form.company, form.time_sink, form.team_size, form.extra];
+        for (var i = 0; i < controls.length; i++) {
+          var el = controls[i];
+          if (!el || !el.removeAttribute) continue;
+          el.removeAttribute('aria-invalid');
+          el.removeAttribute('aria-describedby');
+        }
+      }
+      function clearError() {
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+        clearFieldErrors();
+      }
+      // Validation failure: name the field, move focus onto it, and scroll
+      // it into view. At 375 the error sits above Send while #name is off-screen.
+      function failField(field, msg) {
+        showError(msg);
+        if (!field) return;
+        if (field.setAttribute) {
+          field.setAttribute('aria-invalid', 'true');
+          field.setAttribute('aria-describedby', 'form-error');
+        }
+        if (typeof field.focus === 'function') field.focus();
+        if (typeof field.scrollIntoView === 'function') {
+          field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
 
       function turnstileToken() {
         // Prefer the official API; fall back to the injected hidden input.
@@ -230,13 +257,13 @@ const steps = [
         if (extra) message += '\n\nAlso: ' + extra;
 
         // Client-side validation mirroring the endpoint's limits.
-        if (!name) return showError('Please add your name.');
-        if (name.length > limits.name) return showError('Name is a bit long — keep it under ' + limits.name + ' characters.');
-        if (!emailVal || emailVal.indexOf('@') === -1) return showError('Please add a valid email so Waseem can reply.');
-        if (emailVal.length > limits.email) return showError('That email looks too long to be right.');
-        if (company.length > limits.company) return showError('Business name is a bit long — under ' + limits.company + ' characters, please.');
-        if (!timeSink) return showError('Tell us what’s eating your week — even a sentence helps.');
-        if (message.length > limits.message) return showError('That’s a lot of detail. Please trim it under ' + limits.message + ' characters.');
+        if (!name) return failField(form.name, 'Please add your name.');
+        if (name.length > limits.name) return failField(form.name, 'Name is a bit long — keep it under ' + limits.name + ' characters.');
+        if (!emailVal || emailVal.indexOf('@') === -1) return failField(form.email, 'Please add a valid email so Waseem can reply.');
+        if (emailVal.length > limits.email) return failField(form.email, 'That email looks too long to be right.');
+        if (company.length > limits.company) return failField(form.company, 'Business name is a bit long — under ' + limits.company + ' characters, please.');
+        if (!timeSink) return failField(form.time_sink, 'Tell us what’s eating your week — even a sentence helps.');
+        if (message.length > limits.message) return failField(form.time_sink, 'That’s a lot of detail. Please trim it under ' + limits.message + ' characters.');
 
         var token = turnstileToken();
         if (!token) return showError('Please complete the security check above.');

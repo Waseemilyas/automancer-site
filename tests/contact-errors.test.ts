@@ -59,16 +59,45 @@ interface StubResponse {
   body?: unknown;
 }
 
+interface FieldStub {
+  value: string;
+  focusCalls: number;
+  scrollCalls: unknown[];
+  attrs: Record<string, string>;
+  focus(): void;
+  scrollIntoView(opts?: unknown): void;
+  setAttribute(name: string, value: string): void;
+  getAttribute(name: string): string | null;
+  removeAttribute(name: string): void;
+}
+
+interface DriveResult {
+  shown: string;
+  fields: Record<string, FieldStub>;
+  fetchCalls: number;
+}
+
 /**
  * Execute the served script against browser-shaped stubs, press the form's
  * submit button `submissions` times, and return whatever text ended up in
- * #form-error. Each call gets a fresh page state, matching a fresh visit.
+ * #form-error plus the field stubs (focus / aria). Each call gets a fresh
+ * page state, matching a fresh visit.
  */
 async function driveForm(
   scriptText: string,
   response: StubResponse,
   submissions = 1,
+  values?: Partial<Record<'name' | 'email' | 'company' | 'time_sink' | 'team_size' | 'extra' | 'website', string>>,
 ): Promise<string> {
+  return (await driveFormState(scriptText, response, submissions, values)).shown;
+}
+
+async function driveFormState(
+  scriptText: string,
+  response: StubResponse,
+  submissions = 1,
+  values?: Partial<Record<'name' | 'email' | 'company' | 'time_sink' | 'team_size' | 'extra' | 'website', string>>,
+): Promise<DriveResult> {
   // textContent coerces on assignment in a real DOM (an object becomes
   // "[object Object]" on screen); mirror that so leaks fail as named
   // strings rather than as harness TypeErrors.
@@ -88,16 +117,51 @@ async function driveForm(
 
   type SubmitHandler = (event: { preventDefault(): void }) => Promise<void>;
   let onSubmit: SubmitHandler | null = null;
+  let fetchCalls = 0;
 
-  const field = (value: string) => ({ value });
+  const field = (value: string): FieldStub => {
+    const attrs: Record<string, string> = {};
+    return {
+      value,
+      focusCalls: 0,
+      scrollCalls: [],
+      attrs,
+      focus() {
+        this.focusCalls += 1;
+      },
+      scrollIntoView(opts?: unknown) {
+        this.scrollCalls.push(opts ?? null);
+      },
+      setAttribute(name: string, value: string) {
+        attrs[name] = value;
+      },
+      getAttribute(name: string) {
+        return Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null;
+      },
+      removeAttribute(name: string) {
+        delete attrs[name];
+      },
+    };
+  };
+
+  const fields = {
+    name: field(values?.name ?? 'Test Visitor'),
+    company: field(values?.company ?? ''),
+    email: field(values?.email ?? 'visitor@example.com'),
+    time_sink: field(values?.time_sink ?? 'We retype the same numbers into three systems.'),
+    team_size: field(values?.team_size ?? ''),
+    extra: field(values?.extra ?? ''),
+    website: field(values?.website ?? ''),
+  };
+
   const form = {
-    name: field('Test Visitor'),
-    company: field(''),
-    email: field('visitor@example.com'),
-    time_sink: field('We retype the same numbers into three systems.'),
-    team_size: field(''),
-    extra: field(''),
-    website: field(''), // honeypot stays empty, as a human leaves it
+    name: fields.name,
+    company: fields.company,
+    email: fields.email,
+    time_sink: fields.time_sink,
+    team_size: fields.team_size,
+    extra: fields.extra,
+    website: fields.website,
     style: {} as Record<string, string>,
     addEventListener(type: string, handler: SubmitHandler): void {
       if (type === 'submit') onSubmit = handler;
@@ -133,7 +197,10 @@ async function driveForm(
   )(
     documentStub,
     {},
-    async () => ({ status: response.status, json: async () => response.body }),
+    async () => {
+      fetchCalls += 1;
+      return { status: response.status, json: async () => response.body };
+    },
     { getItem: () => null },
     { search: '' },
     URLSearchParams,
@@ -147,7 +214,7 @@ async function driveForm(
   for (let i = 0; i < submissions; i++) {
     await onSubmit!({ preventDefault() {} });
   }
-  return errEl.textContent;
+  return { shown: errEl.textContent, fields, fetchCalls };
 }
 
 /** Whole-string shape of an API error code: lowercase snake_case, no spaces. */
@@ -301,5 +368,38 @@ describe('LEAD_ERROR_COPY and LEAD_ERROR_FALLBACK are wired into the built page'
     expect(MACHINE_CODE.test(LEAD_ERROR_FALLBACK)).toBe(false);
     expect(MACHINE_CODE_TOKEN.test(LEAD_ERROR_FALLBACK)).toBe(false);
     expect(MACHINE_CODE_TOKEN.test('The security check did not go through.')).toBe(false);
+  });
+});
+
+describe('client-side validation moves focus to the first invalid field', () => {
+  const script = builtContactScript();
+
+  it('empty name: focuses #name, scrolls it into view, and associates the message', async () => {
+    const result = await driveFormState(script, { status: 200 }, 1, { name: '' });
+    expect(result.shown).toBe('Please add your name.');
+    expect(result.fetchCalls, 'empty-name submit must not hit the intake endpoint').toBe(0);
+    expect(
+      result.fields.name.focusCalls,
+      'validation failed on name but focus() was never called'
+    ).toBeGreaterThan(0);
+    expect(
+      result.fields.name.scrollCalls.length,
+      'validation failed on name but scrollIntoView() was never called'
+    ).toBeGreaterThan(0);
+    expect(result.fields.name.getAttribute('aria-invalid')).toBe('true');
+    expect(result.fields.name.getAttribute('aria-describedby')).toBe('form-error');
+    expect(result.fields.email.focusCalls, 'focused email instead of the first invalid field').toBe(0);
+  });
+
+  it('missing email with a name present focuses email, not name', async () => {
+    const result = await driveFormState(script, { status: 200 }, 1, { email: '' });
+    expect(result.shown).toMatch(/valid email/i);
+    expect(result.fetchCalls).toBe(0);
+    expect(result.fields.email.focusCalls).toBeGreaterThan(0);
+    expect(result.fields.email.scrollCalls.length).toBeGreaterThan(0);
+    expect(result.fields.email.getAttribute('aria-invalid')).toBe('true');
+    expect(result.fields.email.getAttribute('aria-describedby')).toBe('form-error');
+    expect(result.fields.name.focusCalls).toBe(0);
+    expect(result.fields.name.getAttribute('aria-invalid')).toBeNull();
   });
 });
