@@ -127,6 +127,14 @@ describe('interactive elements', () => {
     }
   });
 
+  it('hides the hamburger strokes from assistive technology', () => {
+    for (const page of pages) {
+      for (const stroke of page.doc.querySelectorAll('.hamburger span')) {
+        expect(stroke.getAttribute('aria-hidden'), `${page.route}: decorative menu stroke`).toBe('true');
+      }
+    }
+  });
+
   it('every link has discernible text', () => {
     for (const page of pages) {
       for (const link of page.doc.querySelectorAll('a[href]')) {

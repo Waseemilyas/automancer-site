@@ -648,6 +648,7 @@ strong { font-weight: 600; color: inherit; }
 .on-dark .offer__who, .on-near .offer__who { color: var(--muted); }
 .offer__includes h3 { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--faint); margin-bottom: var(--sp-5); }
+.on-paper .offer__includes h3 { color: var(--faint-dark); }
 .ticks { display: flex; flex-direction: column; gap: var(--sp-4); }
 .ticks li { position: relative; padding-left: 1.8rem; line-height: 1.55; }
 /* Orange-gradient check (135°) — no container, no spectrum animation */
