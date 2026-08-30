@@ -19,13 +19,13 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
-    "@sentry/browser": "^10.71.0",
-    "astro": "^7.2.7"
+    "@sentry/browser": "^10.72.0",
+    "astro": "^7.2.9"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "happy-dom": "^20.11.6",
-    "node-html-parser": "^9.0.1",
+    "happy-dom": "^20.11.15",
+    "node-html-parser": "^9.0.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   }
