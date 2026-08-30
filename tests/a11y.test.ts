@@ -153,4 +153,29 @@ describe('interactive elements', () => {
       }
     }
   });
+
+  it('does not put aria-label on a paragraph', () => {
+    // ARIA prohibits aria-label on <p>; assistive tech ignores it and
+    // axe-core flags aria-prohibited-attr. The homepage tagline must carry
+    // its accessible text as real content (see .hero__typed .sr-only).
+    for (const page of pages) {
+      for (const p of page.doc.querySelectorAll('p[aria-label]')) {
+        expect(
+          p.getAttribute('aria-label'),
+          `${page.route}: aria-label is prohibited on <p class="${p.getAttribute('class') ?? ''}">`
+        ).toBeNull();
+      }
+    }
+  });
+
+  it('lazy-loads the below-the-fold footer mark', () => {
+    for (const page of pages) {
+      const mark = page.doc.querySelector('footer img.footer__mark');
+      expect(mark, `${page.route}: footer mark missing`).toBeTruthy();
+      expect(
+        mark!.getAttribute('loading'),
+        `${page.route}: footer logo is below the fold and must load lazily`
+      ).toBe('lazy');
+    }
+  });
 });

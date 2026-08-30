@@ -128,7 +128,18 @@ export const staticPages: PageMeta[] = [
     lastUpdated: '23 August 2026',
     legalNoMirror: true,
   },
-  { path: '/terms/', title: 'Website Terms', description: 'Website terms of use for Automancer Ltd — how you may use this site, our liability position, and the intellectual property in it.', type: 'WebPage', legalNoMirror: true },
+  {
+    path: '/terms/',
+    title: 'Website Terms',
+    description: 'Website terms of use for Automancer Ltd — how you may use this site, our liability position, and the intellectual property in it.',
+    type: 'WebPage',
+    // Derived 2026-08-30: git log -1 --format=%cs -- src/pages/terms.astro
+    // is 2026-08-21, but that commit only lengthened the meta description.
+    // The terms body has been unchanged since 2026-07-03 (1f74245). The
+    // published date is the substance date, matching /privacy/.
+    lastUpdated: '3 July 2026',
+    legalNoMirror: true,
+  },
 ];
 
 /** Markdown twin path for a static page, or null where none is emitted. */
