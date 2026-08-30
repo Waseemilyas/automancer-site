@@ -46,3 +46,19 @@ jobs:
       # Builds dist/ once via vitest globalSetup, then audits it.
       - name: Test production build
         run: pnpm run test
+
+  # Prove the production checker can still fail AND pass. ops/verify-production.sh
+  # guards both deploy.yml (post-deploy verify) and uptime.yml (cron monitor); if
+  # a check inside it silently stops being able to fail, both go quiet at once and
+  # still report green. --self-test drives every check against a local fixture on
+  # 127.0.0.1 (never production) and asserts each can go red and green. No pnpm or
+  # Node needed — just bash, curl, python3 and openssl.
+  self-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Self-test the production checker
+        run: ops/verify-production.sh --self-test
