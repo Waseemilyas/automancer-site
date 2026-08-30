@@ -85,8 +85,8 @@ jobs:
   # proves GitHub accepted the artifact; a build that emitted broken or empty
   # pages would otherwise go green and stay green. This job fails the whole
   # run unless every page answers, unknown paths are a real 404, llms.txt and
-  # the sitemap exist, the legal footer anchor is served, and the TLS
-  # certificate is valid and more than 14 days from expiry.
+  # the sitemap exist, the legal footer anchor is served, the TLS certificate
+  # is valid, and production serves this run's exact build revision.
   #
   # The assertions live in ops/verify-production.sh — shared verbatim with
   # uptime.yml so the two can never drift apart. No continue-on-error here:
@@ -102,4 +102,4 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Verify production serves the new deploy
-        run: ops/verify-production.sh https://automancer.uk
+        run: ops/verify-production.sh --expected-revision "$GITHUB_SHA" https://automancer.uk

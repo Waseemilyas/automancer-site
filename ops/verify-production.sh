@@ -56,6 +56,7 @@ readonly MAX_REDIRECTS=5           # e.g. /services -> /services/ (GitHub Pages 
 BASE_URL=''
 HOST=''       # hostname only (for TLS SNI)
 HOST_PORT=''  # hostname[:port]
+EXPECTED_REVISION='' # seven-character revision served in the homepage proof strip
 
 FAILED_CHECKS=()
 
@@ -100,11 +101,17 @@ log() { printf '%s\n' "$*"; }
 usage() {
   cat >&2 <<'EOF'
 Usage: ops/verify-production.sh <base-url>
+       ops/verify-production.sh --expected-revision <7-or-40-char-sha> <base-url>
        ops/verify-production.sh --self-test
 
 Verify that a deployed Automancer site serves correctly: page statuses,
 real 404s, llms.txt, sitemap XML, agent.json + security.txt at their
 non-dot paths, homepage footer anchor, TLS certificate.
+
+--expected-revision is for the post-deploy gate. It also requires the
+homepage proof strip to serve the first seven characters of the supplied
+Git SHA. The assertion uses the same bounded 90-second retry window as the
+other checks so a normal Pages rollout can finish without paging forever.
 
 --self-test proves the checker itself can still fail AND pass: it drives
 each independently-failable assertion against an isolated local fixture on
@@ -120,9 +127,19 @@ each independently-failable assertion against an isolated local fixture on
 
 Examples:
   ops/verify-production.sh https://automancer.uk         # production
+  ops/verify-production.sh --expected-revision "$GITHUB_SHA" https://automancer.uk
   ops/verify-production.sh https://preview.example.org   # a preview deploy
   ops/verify-production.sh --self-test                   # the checker checks itself
 EOF
+}
+
+validate_expected_revision() {
+  local supplied=$1
+  if [[ ! $supplied =~ ^([0-9a-fA-F]{7}|[0-9a-fA-F]{40})$ ]]; then
+    arg_error "expected revision must be exactly 7 or 40 hexadecimal characters (got \"$supplied\")"
+  fi
+  EXPECTED_REVISION=${supplied:0:7}
+  EXPECTED_REVISION=${EXPECTED_REVISION,,}
 }
 
 arg_error() {
@@ -472,6 +489,26 @@ check_homepage_anchor() {
   rm -f "$BODY_FILE"
 }
 
+check_revision() {
+  local url="${BASE_URL}/" match served
+  fetch_body "$url" || return 1
+  if ! match=$(/usr/bin/grep -oE 'build:</span><b>[0-9a-f]{7}</b>' "$BODY_FILE"); then
+    printf 'homepage %s does NOT expose a seven-character build revision in the proof strip — cannot prove which deploy is serving\n' "$url"
+    rm -f "$BODY_FILE"
+    return 1
+  fi
+  rm -f "$BODY_FILE"
+  match=${match%%$'\n'*}
+  served=${match#*<b>}
+  served=${served%</b>}
+  if [[ $served != "$EXPECTED_REVISION" ]]; then
+    printf 'homepage %s serves build revision %s, expected deployed revision %s — the previous deploy may still be live\n' \
+      "$url" "$served" "$EXPECTED_REVISION"
+    return 1
+  fi
+  printf 'GET %s -> 200 and serves expected build revision %s\n' "$url" "$served"
+}
+
 # Error monitoring is a SETUP condition, and setup conditions must be loud.
 #
 # src/scripts/sentry.ts initialises only when `PROD && dsn`. The DSN comes from
@@ -701,7 +738,7 @@ self_test() {
   HOST='127.0.0.1'
   HOST_PORT="127.0.0.1:${port}"
 
-  log "Self-test: driving 22 independently-failable assertions across 9 checks on ${BASE_URL}"
+  log "Self-test: driving 24 independently-failable assertions across 10 checks on ${BASE_URL}"
   log "(fixtures use 127.0.0.1 only; the TLS trust-chain assertion remains live-only)"
   log ""
 
@@ -844,6 +881,17 @@ Canonical: https://example.com/security.txt
   self_test_route_scenario "/" 200 "<html><body>Company No. 17060907</body></html>"
   self_test_expect pass "homepage contains its structural anchor" check_homepage_anchor
 
+  EXPECTED_REVISION='abc1234'
+  self_test_route_scenario "/" 200 "<html><body>no build marker</body></html>"
+  self_test_expect fail "homepage exposes a build revision" check_revision
+  self_test_route_scenario "/" 200 "<span>build:</span><b>abc1234</b>"
+  self_test_expect pass "homepage exposes a build revision" check_revision
+
+  self_test_route_scenario "/" 200 "<span>build:</span><b>def5678</b>"
+  self_test_expect fail "served build revision matches the expected deploy" check_revision
+  self_test_route_scenario "/" 200 "<span>build:</span><b>abc1234</b>"
+  self_test_expect pass "served build revision matches the expected deploy" check_revision
+
   self_test_scenario '{"routes":{"/":{"status":200,"body":"<html><body>no bundle reference</body></html>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
   self_test_expect fail "homepage exposes an Astro JavaScript bundle" check_sentry_live
   self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
@@ -883,7 +931,7 @@ Canonical: https://example.com/security.txt
     for i in "${SELF_TEST_FAILURES[@]}"; do log "  - $i"; done
     exit 1
   fi
-  log "SELF-TEST RESULT: all 22 locally isolatable assertions across 9 checks can fail AND can pass."
+  log "SELF-TEST RESULT: all 24 locally isolatable assertions across 10 checks can fail AND can pass."
 }
 main() {
   if [[ ${1:-} == '--self-test' ]]; then
@@ -891,6 +939,11 @@ main() {
     preflight
     self_test
     return
+  fi
+  if [[ ${1:-} == '--expected-revision' ]]; then
+    [[ $# -ge 2 ]] || arg_error "--expected-revision requires a Git SHA"
+    validate_expected_revision "$2"
+    shift 2
   fi
   validate_base_url "$@"
   preflight
@@ -914,6 +967,9 @@ main() {
   if ! poll_check "${AGENT_MANIFEST_PATH} answers 200 and parses as JSON" check_agent_manifest; then :; fi
   if ! poll_check "${SECURITY_TXT_PATH} answers 200 and satisfies RFC 9116" check_security_txt; then :; fi
   if ! poll_check "homepage contains structural anchor \"${HOMEPAGE_ANCHOR}\"" check_homepage_anchor; then :; fi
+  if [[ -n $EXPECTED_REVISION ]]; then
+    if ! poll_check "homepage serves expected build revision ${EXPECTED_REVISION}" check_revision; then :; fi
+  fi
   if ! poll_check "error monitoring is live (Sentry DSN present in the bundle)" check_sentry_live; then :; fi
   if ! poll_check "TLS certificate valid and expires >${TLS_MIN_DAYS} days out" check_tls; then :; fi
 

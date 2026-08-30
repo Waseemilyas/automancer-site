@@ -7,6 +7,13 @@ name: Uptime
 # Runs ops/verify-production.sh — the exact same assertions as the verify
 # job in deploy.yml, from one shared script so the two can never drift.
 #
+# Human delivery is external to this workflow: auto-vps's live
+# ci-alert-check.timer discovers every repository-owned workflow, including
+# this scheduled one. A sustained red on automancer-site is routed through the
+# estate's alert-email path into Waseem's next daily digest. This is deliberate:
+# Gmail contains no past failed-Uptime notice, so GitHub's optional scheduled-
+# workflow mail is not treated as the delivery contract.
+#
 # Cron is UTC and GitHub schedules best-effort; runs may lag a few minutes
 # past the half-hour. workflow_dispatch allows triggering a check on demand.
 
