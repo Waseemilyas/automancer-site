@@ -101,4 +101,23 @@ the process is verified gone.)
 
 ## Commit SHAs
 
-(filled in at commit time)
+- `cba5bb9` — `test(ops): add --self-test to the production checker`
+- `ab2f768` — `ci: run verify-production.sh --self-test`
+- `b2e0096` — `docs: record the site-selftest lane`
+
+Pushed to `origin/main` (parity 0/0 after push).
+
+### Release-notes guard, and what I did NOT do
+
+The `--self-test` change is internal tooling, not user-facing, so it carries no
+release notes (all three commits classify internal: `test(ops)`, `ci`, `docs`).
+The release-notes pre-push guard is **not wired in this clone** — `hook-status`
+reports "active pre-push: none, release guard: ABSENT" (`.git/hooks` has no
+`pre-push` and `core.hooksPath` is unset), so the push was not blocked.
+
+`origin/main` carries **two pre-existing user-facing commits ahead of the last
+release tag** (`64e13d1`, `9d28717` — the a11y lane's 404/service-label work,
+already deployed). Those are not mine and I did not cut their release: that tag
+and CHANGELOG entry belong to the a11y lane / the release process, and running
+`release` would publish to GitHub Releases and the client portal. `RELEASE_NOTES_SKIP=1`
+was not used.
