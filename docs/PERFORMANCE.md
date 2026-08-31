@@ -1,9 +1,14 @@
 # Performance — measured payload of every page
 
-All numbers are real bytes off the built output in `dist/` (never estimates),
-measured 2026-08-22 on branch `perf`, built with `PUBLIC_AUT_SENTRY_WEB_DSN=""`
-— exactly the environment `.github/workflows/deploy.yml` ships with, so these
-are the bytes GitHub Pages serves.
+All numbers are real bytes off the built output in `dist/` (never estimates).
+The live table below was measured 2026-08-31 on `main` (`c7bd901`), one pass of
+every page, built with `PUBLIC_AUT_SENTRY_WEB_DSN=""` — the same empty DSN the
+2026-08-22 measurement used, and the environment `ci.yml`'s test job builds
+with (it does not inject the variable). `.github/workflows/deploy.yml`'s Build
+step is the only place the production build sets env: it injects
+`PUBLIC_AUT_SENTRY_WEB_DSN: ${{ vars.PUBLIC_AUT_SENTRY_WEB_DSN }}`. Without a
+DSN, Sentry is tree-shaken out and `assets/js/main.js` is the only script that
+ships, so a DSN-present measurement would not be comparable to this gate.
 
 Column semantics — what a first-time visitor's browser fetches for that page;
 shared assets count once per page because every cold load pays for them:
@@ -16,7 +21,7 @@ shared assets count once per page because every cold load pays for them:
 - **images** — favicons + `<img>` sources. `og:image` is crawler-only and
   deliberately excluded from page weight; it is reported separately below.
 
-## Before — baseline at origin/main (measured before any change)
+## Before — baseline at origin/main (measured 2026-08-22, before the font work)
 
 Every layout page cost ~652–674 KB, of which fonts were ~87%.
 
@@ -50,56 +55,82 @@ Every layout page cost ~652–674 KB, of which fonts were ~87%.
 | `/work/fast-small-business-websites/` | 16,868 | 54,818 | 4,751 | 583,376 | 6,960 | **666,773** |
 | `/work/manufacturer-trade-portal/` | 17,683 | 54,818 | 4,751 | 583,376 | 6,960 | **667,588** |
 
-## After — this branch (measured after the changes below)
+## Current — one-pass measurement 2026-08-31
 
-Every layout page now costs ~190–206 KB.
+Every layout page now costs ~192–205 KB. This table replaces the 2026-08-22
+"After" snapshot and the "Later additions" patch list: every row is from the
+same `node tests/support/perf-cli.ts --csv` run against one build. The Before
+table above stays as the pre-font-work baseline.
 
 | page | html | css | js | fonts | images | total |
 |---|---:|---:|---:|---:|---:|---:|
-| `/` | 21,519 | 48,987 | 4,751 | 120,620 | 6,960 | **202,837** |
-| `/404/` | 17,838 | 48,987 | 4,751 | 120,620 | 6,960 | **199,156** |
+| `/` | 21,440 | 52,026 | 4,751 | 120,620 | 6,960 | **205,797** |
+| `/404/` | 18,339 | 52,026 | 4,751 | 120,620 | 6,960 | **202,696** |
 | `/about.html/` | 297 | 0 | 0 | 0 | 0 | **297** |
-| `/about/` | 18,172 | 48,987 | 4,751 | 120,620 | 6,960 | **199,490** |
+| `/about/` | 17,365 | 52,026 | 4,751 | 120,620 | 6,960 | **201,722** |
 | `/book.html/` | 306 | 0 | 0 | 0 | 0 | **306** |
-| `/contact/` | 23,626 | 48,987 | 4,751 | 120,620 | 6,960 | **204,944** |
-| `/field-notes/` | 18,423 | 48,987 | 4,751 | 120,620 | 6,960 | **199,741** |
-| `/field-notes/automation-for-care-providers-where-to-start/` | 20,652 | 48,987 | 4,751 | 120,620 | 6,960 | **201,970** |
-| `/field-notes/b2b-trade-portals-what-to-build-first/` | 21,129 | 48,987 | 4,751 | 120,620 | 6,960 | **202,447** |
-| `/field-notes/cqc-compliance-evidence-stop-scrambling/` | 20,428 | 48,987 | 4,751 | 120,620 | 6,960 | **201,746** |
-| `/field-notes/credit-hire-website-compliance-trust-checklist/` | 22,629 | 48,987 | 4,751 | 120,620 | 6,960 | **203,947** |
-| `/field-notes/five-signs-spreadsheet-problem/` | 21,692 | 48,987 | 4,751 | 120,620 | 6,960 | **203,010** |
-| `/field-notes/manufacturing-order-processing-phone-and-memory-pricing/` | 21,415 | 48,987 | 4,751 | 120,620 | 6,960 | **202,733** |
-| `/field-notes/new-business-website-legal-compliance-checklist/` | 21,979 | 48,987 | 4,751 | 120,620 | 6,960 | **203,297** |
-| `/field-notes/small-business-website-cost-2026/` | 21,132 | 48,987 | 4,751 | 120,620 | 6,960 | **202,450** |
-| `/field-notes/what-does-an-ai-agent-actually-cost/` | 19,919 | 48,987 | 4,751 | 120,620 | 6,960 | **201,237** |
+| `/contact/` | 25,485 | 52,026 | 4,751 | 120,620 | 6,960 | **209,842** |
+| `/developers/` | 19,947 | 52,026 | 4,751 | 120,620 | 6,960 | **204,304** |
+| `/field-notes/` | 18,232 | 52,026 | 4,751 | 120,620 | 6,960 | **202,589** |
+| `/field-notes/automation-for-care-providers-where-to-start/` | 19,845 | 52,026 | 4,751 | 120,620 | 6,960 | **204,202** |
+| `/field-notes/b2b-trade-portals-what-to-build-first/` | 20,322 | 52,026 | 4,751 | 120,620 | 6,960 | **204,679** |
+| `/field-notes/cqc-compliance-evidence-stop-scrambling/` | 19,621 | 52,026 | 4,751 | 120,620 | 6,960 | **203,978** |
+| `/field-notes/credit-hire-website-compliance-trust-checklist/` | 21,822 | 52,026 | 4,751 | 120,620 | 6,960 | **206,179** |
+| `/field-notes/five-signs-spreadsheet-problem/` | 20,885 | 52,026 | 4,751 | 120,620 | 6,960 | **205,242** |
+| `/field-notes/manufacturing-order-processing-phone-and-memory-pricing/` | 20,608 | 52,026 | 4,751 | 120,620 | 6,960 | **204,965** |
+| `/field-notes/new-business-website-legal-compliance-checklist/` | 21,172 | 52,026 | 4,751 | 120,620 | 6,960 | **205,529** |
+| `/field-notes/self-storage-software-what-to-check-before-you-sign/` | 20,300 | 52,026 | 4,751 | 120,620 | 6,960 | **204,657** |
+| `/field-notes/small-business-website-cost-2026/` | 20,325 | 52,026 | 4,751 | 120,620 | 6,960 | **204,682** |
+| `/field-notes/what-does-an-ai-agent-actually-cost/` | 19,112 | 52,026 | 4,751 | 120,620 | 6,960 | **203,469** |
 | `/privacy.html/` | 309 | 0 | 0 | 0 | 0 | **309** |
-| `/privacy/` | 21,347 | 48,987 | 4,751 | 120,620 | 6,960 | **202,665** |
+| `/privacy/` | 21,727 | 52,026 | 4,751 | 120,620 | 6,960 | **206,084** |
 | `/services.html/` | 315 | 0 | 0 | 0 | 0 | **315** |
-| `/services/` | 24,361 | 48,987 | 4,751 | 120,620 | 6,960 | **205,679** |
+| `/services/` | 23,554 | 52,026 | 4,751 | 120,620 | 6,960 | **207,911** |
 | `/terms.html/` | 297 | 0 | 0 | 0 | 0 | **297** |
-| `/terms/` | 13,152 | 48,987 | 4,751 | 120,620 | 6,960 | **194,470** |
-| `/work/` | 16,727 | 48,987 | 4,751 | 120,620 | 6,960 | **198,045** |
-| `/work/care-provider-transformation/` | 21,141 | 48,987 | 4,751 | 120,620 | 6,960 | **202,459** |
-| `/work/debiaser-ai-product/` | 18,749 | 48,987 | 4,751 | 120,620 | 6,960 | **200,067** |
-| `/work/fast-small-business-websites/` | 16,868 | 48,987 | 4,751 | 120,620 | 6,960 | **198,186** |
-| `/work/manufacturer-trade-portal/` | 17,683 | 48,987 | 4,751 | 120,620 | 6,960 | **199,001** |
+| `/terms/` | 12,438 | 52,026 | 4,751 | 120,620 | 6,960 | **196,795** |
+| `/work/` | 15,920 | 52,026 | 4,751 | 120,620 | 6,960 | **200,277** |
+| `/work/care-provider-transformation/` | 20,334 | 52,026 | 4,751 | 120,620 | 6,960 | **204,691** |
+| `/work/debiaser-ai-product/` | 17,942 | 52,026 | 4,751 | 120,620 | 6,960 | **202,299** |
+| `/work/fast-small-business-websites/` | 16,061 | 52,026 | 4,751 | 120,620 | 6,960 | **200,418** |
+| `/work/manufacturer-trade-portal/` | 16,876 | 52,026 | 4,751 | 120,620 | 6,960 | **201,233** |
 
-## Later additions (measured after the 2026-08-22 snapshot)
+### What moved since 2026-08-22
 
-The two tables above are a snapshot of 2026-08-22 and are not rewritten when a
-page is added. `tests/performance.test.ts` is the live source of truth for
-budgets: pages added since carry their own measured value and a comment saying
-when and how it was taken.
+Shared CSS is the site-wide drift this re-measure exists to reset:
 
-| page | html | css | js | fonts | images | total | measured |
-|---|---:|---:|---:|---:|---:|---:|---|
-| `/field-notes/self-storage-software-what-to-check-before-you-sign/` | 20,228 | 50,958 | 4,751 | 120,620 | 6,960 | **203,517** | 2026-08-24 |
+| when | css per layout page |
+|---|---:|
+| 2026-08-22 snapshot | 48,987 |
+| 2026-08-24 (later-additions note) | 50,958 |
+| 2026-08-31 this pass | **52,026** |
 
-Note the shared layout payload has drifted since 2026-08-22: css is 50,958 B on
-this build against 48,987 B in the table above, so ~2 KB of every "new" page's
-weight is site-wide growth rather than the page itself. Existing pages still sit
-inside their 2%-headroom budgets, so the gate has not been re-derived; when it
-next needs to be, re-measure every page in one pass rather than patching rows.
+JS (4,751 B), fonts (120,620 B) and images (6,960 B) are byte-identical to the
+2026-08-22 snapshot. No page grew a script, a font, or an image.
+
+Typical layout page vs the 2026-08-22 After table: HTML −807 B (shared chrome
+shrank) + CSS +3,039 B = total **+2,232 B**. That CSS step is most of every
+page's apparent growth; it is site-wide, not the page.
+
+HTML that grew *beyond* that shared CSS, vs the 2026-08-22 After table:
+
+- `/404/` HTML +501 B (total +3,540 B). Markup, not a new asset.
+- `/privacy/` HTML +380 B (total +3,419 B). Markup, not a new asset.
+- `/contact/` HTML +1,859 B vs the After table. That gap is the
+  `LEAD_ERROR_COPY` map already absorbed into the live gate at 209,540 B on
+  2026-08-22; vs that later gate value, contact only grew +302 B total (HTML
+  shrank since then). Not new growth in this pass.
+
+Nothing grew by a payload-class amount the shared CSS does not explain. The
+404 and privacy HTML deltas are hundreds of bytes of copy/markup (a11y and
+legal edits landed after the snapshot), not a font, image, or script. They
+are named because the rule is to name them, not because they are a reason to
+stop the re-derive.
+
+`/developers/` was already in `MEASURED_TOTAL` and missing from the old docs
+tables; it is not a new page. Redirect stubs are unchanged.
+
+When this table next needs to be rewritten, re-measure every page in one pass
+rather than patching rows.
 
 ## What changed, and why rendering is byte-for-byte identical
 
@@ -168,7 +199,7 @@ plus the weights the page uses, not from a network capture.
 The budget test measures the fresh production build (globalSetup builds once)
 and fails when any layout page exceeds:
 
-- total page weight: measured value (2026-08-22) + max(1024, ceil(2%)) headroom,
+- total page weight: measured value (2026-08-31) + max(1024, ceil(2%)) headroom,
 - JS: 4,751 B measured → 5,775 B budget,
 - wired fonts: 120,620 B measured → 123,033 B budget,
 
@@ -176,9 +207,10 @@ plus three structural gates: no page without a budget entry (fail-closed for
 new pages), no reference to a missing asset (catches dangling url()s after any
 future prune), and no unreferenced woff2 shipping (mirrors assets.test.ts).
 
-The gate has been seen failing: temporarily lowering /terms/'s budget to
-190,000 B produces `/terms/: total 194470 B > budget 193800 B …` with 1 failed
-test; restoring the measured value returns it to green (7/7 passing).
+The gate has been seen failing: see `docs/lanes/orch-auto-site-perf-budgets-notes.md`
+for the 2026-08-31 re-derive proof (temporarily lowering `/terms/`'s
+`MEASURED_TOTAL` below the live weight, watching the suite fail, then
+reverting). A budget table that passes everything proves nothing.
 
 To re-derive budgets after a deliberate change: build, run
 `node tests/support/perf-cli.ts --csv`, update the MEASURED_* values in

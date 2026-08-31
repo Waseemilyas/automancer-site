@@ -1,9 +1,12 @@
 /**
  * Page-weight budgets — the gate that makes regressions impossible to miss.
  *
- * Every budget below is derived from a MEASURED build of 2026-08-22
- * (branch `perf`, `PUBLIC_AUT_SENTRY_WEB_DSN=""` as in deploy.yml; full
- * tables and method in docs/PERFORMANCE.md). Budget = measured + headroom,
+ * Every budget below is derived from a MEASURED build of 2026-08-31
+ * (one pass of every page against a fresh `PUBLIC_AUT_SENTRY_WEB_DSN=""`
+ * build, matching the empty DSN the 2026-08-22 measurement used and that
+ * `ci.yml`'s test job builds with; deploy.yml's Build step injects the same
+ * variable from `vars.PUBLIC_AUT_SENTRY_WEB_DSN`. Full tables and method in
+ * docs/PERFORMANCE.md). Budget = measured + headroom,
  * where headroom = max(1024, ceil(measured × 0.02)) — enough slack for
  * routine copy edits and Astro hashing noise, small enough that adding an
  * asset, font weight or dependency-sized script trips it. Never round a
@@ -20,50 +23,35 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { measureAllPages, DIST, ROOT } from './support/perf';
 
-/** Measured 2026-08-22: total page weight per route, bytes (see --csv command above). */
+/** Measured 2026-08-31: total page weight per route, bytes (see --csv command above). */
 const MEASURED_TOTAL: Record<string, number> = {
-  '/': 202837,
-  '/404/': 199156,
-  '/about/': 199490,
-  // Re-measured 2026-08-22 03:20Z after adding the LEAD_ERROR_COPY map and the
-  // copyFor() helper to the inline contact script (+4596 B). Deliberate growth
-  // on the conversion path: it is what stops a visitor being shown a raw
-  // machine code like "turnstile_failed". Re-derived with
-  // `node tests/support/perf-cli.ts --csv`, not adjusted to make the test pass.
-  '/contact/': 209540,
-  // Added 2026-08-22 after the developer-surface lane shipped /developers.
-  // Measured with `node tests/support/perf-cli.ts --csv` on the merged tree,
-  // not estimated from a neighbouring page.
-  '/developers/': 204206,
-  '/field-notes/': 199741,
-  '/field-notes/automation-for-care-providers-where-to-start/': 201970,
-  '/field-notes/b2b-trade-portals-what-to-build-first/': 202447,
-  '/field-notes/cqc-compliance-evidence-stop-scrambling/': 201746,
-  '/field-notes/credit-hire-website-compliance-trust-checklist/': 203947,
-  '/field-notes/five-signs-spreadsheet-problem/': 203010,
-  '/field-notes/manufacturing-order-processing-phone-and-memory-pricing/': 202733,
-  '/field-notes/new-business-website-legal-compliance-checklist/': 203297,
-  // Added 2026-08-24 with the week-5.2 field note. Measured on this branch with
-  // `PUBLIC_AUT_SENTRY_WEB_DSN="" pnpm run build` then
-  // `node tests/support/perf-cli.ts --csv`, not estimated from a neighbouring
-  // note. Its html is 20,228 B; the rest is the shared layout payload, which
-  // has drifted up since the 2026-08-22 snapshot (css 50,958 B on this build
-  // vs 48,987 B then), so this row sits above the older field notes for
-  // reasons that have nothing to do with the post's own length.
-  '/field-notes/self-storage-software-what-to-check-before-you-sign/': 203517,
-  '/field-notes/small-business-website-cost-2026/': 202450,
-  '/field-notes/what-does-an-ai-agent-actually-cost/': 201237,
-  '/privacy/': 202665,
-  '/services/': 205679,
-  '/terms/': 194470,
-  '/work/': 198045,
-  '/work/care-provider-transformation/': 202459,
-  '/work/debiaser-ai-product/': 200067,
-  '/work/fast-small-business-websites/': 198186,
-  '/work/manufacturer-trade-portal/': 199001,
+  '/': 205797,
+  '/404/': 202696,
+  '/about/': 201722,
+  '/contact/': 209842,
+  '/developers/': 204304,
+  '/field-notes/': 202589,
+  '/field-notes/automation-for-care-providers-where-to-start/': 204202,
+  '/field-notes/b2b-trade-portals-what-to-build-first/': 204679,
+  '/field-notes/cqc-compliance-evidence-stop-scrambling/': 203978,
+  '/field-notes/credit-hire-website-compliance-trust-checklist/': 206179,
+  '/field-notes/five-signs-spreadsheet-problem/': 205242,
+  '/field-notes/manufacturing-order-processing-phone-and-memory-pricing/': 204965,
+  '/field-notes/new-business-website-legal-compliance-checklist/': 205529,
+  '/field-notes/self-storage-software-what-to-check-before-you-sign/': 204657,
+  '/field-notes/small-business-website-cost-2026/': 204682,
+  '/field-notes/what-does-an-ai-agent-actually-cost/': 203469,
+  '/privacy/': 206084,
+  '/services/': 207911,
+  '/terms/': 196795,
+  '/work/': 200277,
+  '/work/care-provider-transformation/': 204691,
+  '/work/debiaser-ai-product/': 202299,
+  '/work/fast-small-business-websites/': 200418,
+  '/work/manufacturer-trade-portal/': 201233,
 };
 
-/** Measured 2026-08-22: identical on every layout page (shared layout assets). */
+/** Measured 2026-08-31: identical on every layout page (shared layout assets). */
 const MEASURED_JS = 4751; // dist/assets/js/main.js — the only external script
 const MEASURED_FONTS = 120620; // 4 variable woff2 files reachable from fonts.css
 
@@ -98,29 +86,29 @@ describe('page-weight budgets', () => {
       expect(
         p.totalBytes,
         `${p.route}: total ${p.totalBytes} B > budget ${budget} B ` +
-          `(measured ${measured} B on 2026-08-22 + ${headroom(measured)} B headroom). ` +
+          `(measured ${measured} B on 2026-08-31 + ${headroom(measured)} B headroom). ` +
           'Something got heavier — see docs/PERFORMANCE.md for how to re-derive.',
       ).toBeLessThanOrEqual(budget);
     }
   });
 
   it('keeps JavaScript within budget on every layout page', () => {
-    const budget = MEASURED_JS + headroom(MEASURED_JS); // 5775 B from 4751 B @ 2026-08-22
+    const budget = MEASURED_JS + headroom(MEASURED_JS); // 5775 B from 4751 B @ 2026-08-31
     for (const p of layoutPages) {
       expect(
         p.jsBytes,
-        `${p.route}: js ${p.jsBytes} B > budget ${budget} B (measured 4751 B on 2026-08-22). ` +
+        `${p.route}: js ${p.jsBytes} B > budget ${budget} B (measured 4751 B on 2026-08-31). ` +
           'A script grew or a new one was added.',
       ).toBeLessThanOrEqual(budget);
     }
   });
 
   it('keeps font payload within budget on every layout page', () => {
-    const budget = MEASURED_FONTS + headroom(MEASURED_FONTS); // 123033 B from 120620 B @ 2026-08-22
+    const budget = MEASURED_FONTS + headroom(MEASURED_FONTS); // 123033 B from 120620 B @ 2026-08-31
     for (const p of layoutPages) {
       expect(
         p.fontBytes,
-        `${p.route}: fonts ${p.fontBytes} B > budget ${budget} B (measured 120620 B on 2026-08-22). ` +
+        `${p.route}: fonts ${p.fontBytes} B > budget ${budget} B (measured 120620 B on 2026-08-31). ` +
           'A new font file or @font-face rule crept in — four variable woff2 files serve ' +
           'every family and weight today.',
       ).toBeLessThanOrEqual(budget);
