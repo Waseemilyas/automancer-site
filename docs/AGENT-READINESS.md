@@ -1,7 +1,7 @@
 # Agent-readiness — automancer.uk against is-agentic.com
 
-Status: **implemented on `feat/agent-readiness`**, verified by a clean production build.
-Last reviewed: 22 August 2026.
+Status: **shipped on `main` in `v2026.08.22.1`** (merge `4f2e4a8`, 22 August 2026).
+Last reviewed: 31 August 2026.
 
 ## Measured baseline & response — official is-agentic.com scan, 2026-08-22
 

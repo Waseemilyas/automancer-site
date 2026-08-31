@@ -14,8 +14,11 @@ name: Uptime
 # Gmail contains no past failed-Uptime notice, so GitHub's optional scheduled-
 # workflow mail is not treated as the delivery contract.
 #
-# Cron is UTC and GitHub schedules best-effort; runs may lag a few minutes
-# past the half-hour. workflow_dispatch allows triggering a check on demand.
+# Cron is UTC. The expression asks for every 30 minutes; GitHub's shared
+# scheduler does not honour that as the detection window. Measured 31 Aug 2026
+# from all 174 scheduled runs (22 Aug 01:57Z – 31 Aug 00:43Z): median gap
+# 45.5 minutes, mean 74.5 minutes, longest 12.5 hours. workflow_dispatch
+# allows triggering a check on demand.
 
 on:
   schedule:

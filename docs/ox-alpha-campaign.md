@@ -15,7 +15,7 @@ about 40 seconds, so every merge tonight was treated as a deploy.
 | **Nine real defects fixed** | Found by those tests, fixed at source rather than by relaxing the test. Every page skipped from `h2` to `h4` (a genuine accessibility fault), the 404 page had no heading, and four pages had search descriptions too long to display in full. |
 | **The agent-readiness work you asked for** | 19 Markdown versions of pages, six JSON endpoints, RSS and JSON feeds, a full-site text document, an agent manifest, and a `robots.txt` that names 19 AI crawlers and blocks none of them. |
 | **Astro 7.1.6 → 7.2.4 and the upstream backlog** | The local checkout was five commits behind and nobody had noticed. Integrated, reinstalled, re-verified against the real dependency set. |
-| **Production is now checked after every deploy** | A new mandatory job fetches the live site and fails the run if it is wrong. The same checks run every 30 minutes. Previously nothing would have told us the site was down. |
+| **Production is now checked after every deploy** | A new mandatory job fetches the live site and fails the run if it is wrong. The same checks also run on a `*/30` cron; measured 31 Aug 2026 from 174 scheduled runs (22–31 Aug), the gap is a median 45.5 minutes (mean 74.5; longest 12.5 hours), not twice an hour. Previously nothing would have told us the site was down. |
 | **14 dead files removed** | Superseded images and an unused stylesheet, each proven unreferenced, with a test that fails if one reappears. |
 
 ## The agent-readiness score, measured
@@ -464,9 +464,10 @@ A lane was building this when the memory hold stopped it. It wrote nothing —
 verified by `find`, not by `git status`, which is blind to build output.
 
 **If you pick this up, the danger is the opposite direction.** This check runs in
-the mandatory deploy gate AND the ~58-minute uptime workflow, so a *wrong* check
-fails permanently against a *healthy* site and pages forever, indistinguishable
-from a real outage. Four ways to get that wrong:
+the mandatory deploy gate AND the uptime workflow (measured median gap 45.5
+minutes, not the 30 the cron requests), so a *wrong* check fails permanently
+against a *healthy* site and pages forever, indistinguishable from a real
+outage. Four ways to get that wrong:
 
 1. **Short vs full SHA** — `GITHUB_SHA` is 40 chars, `--short` is 7-8. Compare
    unnormalised and every healthy deploy fails.
@@ -489,9 +490,6 @@ from a real outage. Four ways to get that wrong:
 - **Two is-agentic checks will keep failing and should** — markdown content
   negotiation with `Vary: Accept` (GitHub Pages cannot do content negotiation or
   set headers) and brand-name search discoverability (an index outcome).
-- **The uptime workflow's real interval is ~58 minutes**, not the 30 its cron
-  requests. Measured from consecutive run timestamps. The runbook should say the
-  measured figure.
 - **The Sentry check proves a DSN is *present*, not that monitoring *reaches
   us*.** A rotated or wrong-project DSN would pass identically. Verifying that
   needs the expected value, which lives in a CI variable rather than the repo.
