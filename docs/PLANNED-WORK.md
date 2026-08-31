@@ -56,3 +56,18 @@ means a linked worktree sharing its primary's config; `.git` a DIRECTORY means a
 ## 5. Leftover design-tool directories
 
 `./.impeccable` and siblings are still sitting in the repo. Cosmetic; decide keep or remove.
+
+---
+
+## NEEDS WASEEM
+
+Filed as `WASEEM DECISION` Paperclip issues on *AUTO — Website & BD Engine* as well, so they are
+collectible; repeated here so they survive any tool.
+
+- **AUT-7594 — three pieces of text fail readability, and fixing them means changing colours you
+  chose.** The footer line "very good engineering" measures ~1.5 against a needed 4.5. Two offer
+  labels sit at 4.18. The decorative numerals look like two of three have their light and dark
+  outline colours swapped — check that before treating it as decoration.
+- **AUT-7596 — prove the error alerts reach a real person.** Connecting the detector is
+  straightforward; deliberately causing a live error and confirming a named person received the
+  alert is not something an agent should do unsupervised.
