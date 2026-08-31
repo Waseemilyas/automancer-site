@@ -36,7 +36,7 @@ const agentManifestBody = {
     webForm: abs('/contact'),
     formNote:
       'The form requires JavaScript and a browser security check; agents should prefer email.',
-    responseTime: 'A human replies personally; we aim for first response within one working week.',
+    responseTime: 'We promise a meeting within one week of first contact.',
   },
   // Everything an agent can fetch without JavaScript or credentials.
   machineReadable: {

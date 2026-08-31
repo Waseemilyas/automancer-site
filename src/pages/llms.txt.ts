@@ -56,7 +56,7 @@ export const GET: APIRoute = () => {
     '- On-site work outside the UK is required — delivery is remote-first, UK-wide.'
   );
   lines.push(
-    '- Guaranteed instant support SLAs are needed — support is async and human (aim: first response within one working week).'
+    '- Guaranteed instant support SLAs are needed — support is async and human. We promise a meeting within one week of first contact.'
   );
   lines.push('');
 

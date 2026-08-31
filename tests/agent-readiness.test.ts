@@ -17,7 +17,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DIST, SITE_URL, contentPages, readDistFile, resolveInDist } from './support/dist';
+import { DIST, ROOT, SITE_URL, contentPages, readDistFile, resolveInDist } from './support/dist';
 import { contentEntries } from './support/content';
 import { business, services } from '../src/data/business';
 import { fitDescription, fitTitle } from '../src/lib/meta';
@@ -690,5 +690,67 @@ describe('GitHub Pages serving constraints', () => {
       existsSync(join(DIST, '.nojekyll')),
       '.nojekyll is missing from dist/ — GitHub Pages will Jekyll-process the build'
     ).toBe(true);
+  });
+});
+
+/**
+ * VISION.md: what a machine is told never differs from what a person is shown.
+ *
+ * The human pages already publish one commitment, in one wording:
+ * "We promise a meeting within one week of first contact." The two machine
+ * surfaces (agent.json and llms.txt) used to say something weaker — a first
+ * *response* within a *working* week. This pin is the independent copy of
+ * the human sentence; it is not imported from the generators, so a generator
+ * that drifts cannot pass by agreeing with itself.
+ */
+const MEETING_PROMISE = 'We promise a meeting within one week of first contact.';
+/** Human pages capitalise We/we by sentence position; the words are the same. */
+const MEETING_PROMISE_RE = /we promise a meeting within one week of first contact/i;
+
+function collapsedSource(rel: string): string {
+  return readFileSync(join(ROOT, rel), 'utf8').replace(/\s+/g, ' ');
+}
+
+describe('one-week meeting promise — people and machines, same words', () => {
+  const humanSources = [
+    'src/data/static-markdown.ts',
+    'src/data/site-content.ts',
+    'src/pages/contact.astro',
+    'src/pages/services.astro',
+    'src/pages/work/[slug].astro',
+    'src/pages/about.astro',
+    'src/pages/index.astro',
+  ];
+
+  it('every listed human source still states the published promise', () => {
+    for (const rel of humanSources) {
+      expect(
+        collapsedSource(rel),
+        `${rel} no longer states the one-week meeting promise — that wording is a live public commitment, not a copy-edit`
+      ).toMatch(MEETING_PROMISE_RE);
+    }
+  });
+
+  it('machine surfaces state that same promise in the same words', () => {
+    expect(
+      collapsedSource('src/data/wellknown-agent.ts'),
+      'src/data/wellknown-agent.ts drifted from the human one-week meeting promise'
+    ).toContain(MEETING_PROMISE);
+    expect(
+      collapsedSource('src/pages/llms.txt.ts'),
+      'src/pages/llms.txt.ts drifted from the human one-week meeting promise'
+    ).toContain(MEETING_PROMISE);
+
+    const agent = JSON.parse(readDistFile('agent.json') ?? '{}') as {
+      contact?: { responseTime?: string };
+    };
+    expect(
+      agent.contact?.responseTime,
+      'dist/agent.json contact.responseTime is not the human one-week meeting promise'
+    ).toContain(MEETING_PROMISE);
+    expect(
+      readDistFile('llms.txt'),
+      'dist/llms.txt drifted from the human one-week meeting promise'
+    ).toContain(MEETING_PROMISE);
   });
 });
