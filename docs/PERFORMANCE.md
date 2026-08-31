@@ -207,10 +207,11 @@ plus three structural gates: no page without a budget entry (fail-closed for
 new pages), no reference to a missing asset (catches dangling url()s after any
 future prune), and no unreferenced woff2 shipping (mirrors assets.test.ts).
 
-The gate has been seen failing: see `docs/lanes/orch-auto-site-perf-budgets-notes.md`
-for the 2026-08-31 re-derive proof (temporarily lowering `/terms/`'s
-`MEASURED_TOTAL` below the live weight, watching the suite fail, then
-reverting). A budget table that passes everything proves nothing.
+The gate has been seen failing: temporarily lowering `/terms/`'s
+`MEASURED_TOTAL` to 190,000 B produces `/terms/: total 196795 B > budget 193800 B …`
+with 1 failed / 135 passed of 136; restoring the measured value returns it to
+green (136/136). A budget table that passes everything proves nothing. Full
+transcript in `docs/lanes/orch-auto-site-perf-budgets-notes.md`.
 
 To re-derive budgets after a deliberate change: build, run
 `node tests/support/perf-cli.ts --csv`, update the MEASURED_* values in

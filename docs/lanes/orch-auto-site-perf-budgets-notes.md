@@ -132,14 +132,38 @@ stop the re-derive. **No budget was raised to make a test pass** — every
 
 ## Gate still bites
 
-*(Filled after push. Temporarily lower `/terms/` `MEASURED_TOTAL` below the
-live weight, run the suite, capture the failure, revert.)*
+After the measurement commit was pushed, temporarily set
+`MEASURED_TOTAL['/terms/']` from **196795** to **190000** (same trick the
+2026-08-22 write-up used). Ran `PUBLIC_AUT_SENTRY_WEB_DSN="" pnpm run test`
+inside the same `campaign heavy` slot as the green verify. The suite **failed**:
+
+```
+FAIL  tests/performance.test.ts > page-weight budgets > keeps every layout page within its measured total-weight budget
+AssertionError: /terms/: total 196795 B > budget 193800 B (measured 190000 B on 2026-08-31 + 3800 B headroom). Something got heavier — see docs/PERFORMANCE.md for how to re-derive.: expected 196795 to be less than or equal to 193800
+```
+
+Counts for that run: **135 passed / 1 failed / 0 skipped out of 136 collected**
+(Test Files: 1 failed | 12 passed (13)). Then `git checkout -- tests/performance.test.ts`.
+Confirmed `/terms/` is 196795 again and `git diff` against HEAD is empty.
+
+The live weight in the failure (196795) is the CSV total for `/terms/`. The
+gate trips on a real page, not on a guess.
 
 ## Full gate counts
 
-*(Filled after push. `pnpm run verify` = `pnpm run check && pnpm run test`,
-which is what `ci.yml` runs as its two test-job steps. Also
-`ops/verify-production.sh --self-test`, CI's other job.)*
+`ci.yml` test job: `pnpm run check` then `pnpm run test`. Local equivalent is
+`pnpm run verify`. Ran after the bite revert, same empty DSN, against a
+rebuild of the same source (`campaign heavy --label q-auto-c56d-gate`).
+
+| suite | result |
+|---|---|
+| `pnpm run check` (`astro check`) | **0 errors / 0 warnings / 0 hints out of 81 files** |
+| `pnpm run test` (`vitest run`, globalSetup rebuilds) | **136 passed / 0 failed / 0 skipped out of 136 collected** (13 files) |
+| bite (same `pnpm run test`, lowered `/terms/`) | **135 passed / 1 failed / 0 skipped out of 136 collected** |
+| `ops/verify-production.sh --self-test` (CI's other job; 127.0.0.1 fixture, not production) | **all 24 locally isolatable assertions across 10 checks can fail AND can pass.** EXIT 0 |
+
+`pnpm run verify` is `check && test`. That is the full test-job gate. The
+self-test job was run as well; it does not rebuild the site.
 
 ## What was edited
 
