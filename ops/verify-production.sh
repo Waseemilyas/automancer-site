@@ -43,6 +43,20 @@ readonly HOMEPAGE_ANCHOR="Company No. 17060907"
 # it surfaces a FAILED renewal within about a week instead of sitting silent
 # for a fortnight, which a 14-day threshold would have done.
 readonly TLS_MIN_DAYS=21
+# Expected destination of production errors. Sourced from the Sentry org
+# catalogue (org slug `automancer`, EU region, project slug `automancer-site`)
+# via a read-only Executor call on 2026-08-31 — NOT from
+# vars.PUBLIC_AUT_SENTRY_WEB_DSN. That CI variable is the DSN the build
+# inlines; this constant is which project those events must land in. A DSN
+# for any other project in the same org, a rotated key on a project nobody
+# watches, or a DSN that merely looks like an ingest URL, fails this check.
+#
+# What this cannot catch: a PR that updates BOTH this constant and the CI
+# DSN to a new project together. That changes the intent in two places at
+# once and the check would agree with itself. It also cannot catch an alert
+# rule that does not actually page anyone.
+readonly EXPECTED_SENTRY_PROJECT_ID='4511769898647632'
+readonly EXPECTED_SENTRY_PROJECT_SLUG='automancer-site'
 
 # MEASURED: Pages deploys tonight completed in 36-47s end to end. This is a
 # BACKSTOP against a hung request, not the check itself — the check is the
@@ -103,10 +117,12 @@ usage() {
 Usage: ops/verify-production.sh <base-url>
        ops/verify-production.sh --expected-revision <7-or-40-char-sha> <base-url>
        ops/verify-production.sh --self-test
+       ops/verify-production.sh --assert-sentry-bundle <js-file>
 
 Verify that a deployed Automancer site serves correctly: page statuses,
 real 404s, llms.txt, sitemap XML, agent.json + security.txt at their
-non-dot paths, homepage footer anchor, TLS certificate.
+non-dot paths, homepage footer anchor, TLS certificate, Sentry DSN for
+the expected project (not merely "a" Sentry project).
 
 --expected-revision is for the post-deploy gate. It also requires the
 homepage proof strip to serve the first seven characters of the supplied
@@ -116,6 +132,10 @@ other checks so a normal Pages rollout can finish without paging forever.
 --self-test proves the checker itself can still fail AND pass: it drives
 each independently-failable assertion against an isolated local fixture on
 127.0.0.1 (never production) and asserts both failing and passing directions.
+
+--assert-sentry-bundle runs only the Sentry project assertion against a
+local JavaScript file (a fixture or a copy of a bundle). It never prints
+a DSN. Used to prove the check against bytes that are not production.
 
 <base-url> must be a BARE https origin:
   - https scheme is required (the check suite includes TLS certificate
@@ -130,6 +150,7 @@ Examples:
   ops/verify-production.sh --expected-revision "$GITHUB_SHA" https://automancer.uk
   ops/verify-production.sh https://preview.example.org   # a preview deploy
   ops/verify-production.sh --self-test                   # the checker checks itself
+  ops/verify-production.sh --assert-sentry-bundle ./bundle.js  # local bundle only
 EOF
 }
 
@@ -517,27 +538,113 @@ check_revision() {
 # simply OFF — with nothing anywhere reporting it. A missing DSN is a condition
 # of OUR SETUP, not of the world, and it is the only kind a human can fix.
 #
+# Presence of *any* Sentry ingest URL is not enough: a DSN for a different
+# project (rotated key, sibling project in the same org, a project nobody
+# watches) looks identical to the old grep. The check compares the project
+# id in the served bundle against EXPECTED_SENTRY_PROJECT_ID, which is the
+# committed intent — not a copy of the CI variable that supplied the DSN.
+#
 # Checked here rather than in the test suite because the suite builds WITHOUT a
 # DSN (correctly — dev, preview and test must not consume the production error
 # budget), so only production can answer this.
+#
+# extract_sentry_project_ids and sentry_bundle_verdict never print a DSN.
+
+extract_sentry_project_ids() {
+  # Numeric path after the ingest host, optionally under /api/. The org id
+  # lives in the hostname (oNNNN.ingest...) and is not a project id.
+  python3 - "$1" <<'PY'
+import re, sys
+from pathlib import Path
+text = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
+ids = re.findall(r"ingest(?:\.de)?\.sentry\.io(?:/api)?/(\d+)", text)
+seen = []
+for i in ids:
+    if i not in seen:
+        seen.append(i)
+sys.stdout.write("\n".join(seen))
+PY
+}
+
+# sentry_bundle_verdict <js-file> <label>
+# Prints one diagnosis line. Returns 0 only when every extracted project id
+# is EXPECTED_SENTRY_PROJECT_ID. Distinguishes "no DSN" (blames the CI
+# variable) from "wrong project" (names expected vs found).
+sentry_bundle_verdict() {
+  local bundle_file=$1 label=$2
+  local ids_raw id found_list
+  local -a found=() unexpected=()
+  if ! ids_raw=$(extract_sentry_project_ids "$bundle_file"); then
+    printf 'could not parse %s for a Sentry project id\n' "$label"
+    return 1
+  fi
+  if [[ -z $ids_raw ]]; then
+    printf 'bundle %s contains NO Sentry ingest DSN — error monitoring is OFF in production. This is a missing-DSN failure, not a wrong-project mismatch: no ingest URL is present at all. src/scripts/sentry.ts only initialises when PROD && dsn, so a renamed or unset GitHub Actions variable named PUBLIC_AUT_SENTRY_WEB_DSN yields a green build and a silent dark monitor. Check that repository variable'\''s name; the application code is not what went missing.\n' "$label"
+    return 1
+  fi
+  while IFS= read -r id; do
+    [[ -n $id ]] || continue
+    found+=("$id")
+    if [[ $id != "$EXPECTED_SENTRY_PROJECT_ID" ]]; then
+      unexpected+=("$id")
+    fi
+  done <<< "$ids_raw"
+  found_list=$(IFS=,; printf '%s' "${found[*]}")
+  if (( ${#unexpected[@]} > 0 )); then
+    printf 'bundle %s carries a Sentry DSN for project %s, expected %s (%s) — errors would go to the WRONG project. A DSN is present, so this is not the missing-variable failure; PUBLIC_AUT_SENTRY_WEB_DSN is a DSN for a different project than %s.\n' \
+      "$label" "$found_list" "$EXPECTED_SENTRY_PROJECT_ID" "$EXPECTED_SENTRY_PROJECT_SLUG" "$EXPECTED_SENTRY_PROJECT_SLUG"
+    return 1
+  fi
+  printf 'bundle %s carries a Sentry DSN for expected project %s (%s) — error monitoring is live on the right project\n' \
+    "$label" "$EXPECTED_SENTRY_PROJECT_ID" "$EXPECTED_SENTRY_PROJECT_SLUG"
+}
+
 check_sentry_live() {
-  local url="${BASE_URL}/"
+  local url="${BASE_URL}/" rc=0 script combined
+  local -a scripts=()
   fetch_body "$url" || return 1
-  local bundle
-  bundle=$(grep -oE '/_astro/[^"]+\.js' "$BODY_FILE" | head -1)
+  # Same-origin JS the homepage actually loads. Sentry, when the DSN is
+  # present, is an /_astro/ chunk. When PUBLIC_AUT_SENTRY_WEB_DSN is unset
+  # or renamed, Sentry is tree-shaken and only /assets/js/main.js ships —
+  # so a check that requires /_astro/*.js would blame the page for not
+  # rendering, which is the wrong diagnosis for the failure this exists
+  # to catch.
+  while IFS= read -r script; do
+    [[ -n $script ]] || continue
+    scripts+=("$script")
+  done < <(grep -oE '/(_astro|assets)/[^"[:space:]>]+\.js' "$BODY_FILE" | sort -u || true)
   rm -f "$BODY_FILE"
-  if [[ -z $bundle ]]; then
-    printf 'could not find a /_astro/*.js bundle on %s — the page did not render as expected\n' "$url"
+  if (( ${#scripts[@]} == 0 )); then
+    printf 'could not find a /_astro/*.js or /assets/*.js bundle on %s — the page did not render as expected\n' "$url"
     return 1
   fi
-  fetch_body "${BASE_URL}${bundle}" || return 1
-  if ! grep -qE 'ingest\.(de\.)?sentry\.io|o[0-9]+\.ingest' "$BODY_FILE"; then
-    printf 'bundle %s contains NO Sentry ingest DSN — error monitoring is OFF in production. The PUBLIC_AUT_SENTRY_WEB_DSN repository variable is probably unset or renamed; the build and deploy both succeed without it\n' "$bundle"
+  combined=$(need_tmp)
+  : >"$combined"
+  for script in "${scripts[@]}"; do
+    if ! fetch_body "${BASE_URL}${script}"; then
+      rm -f "$combined"
+      return 1
+    fi
+    cat "$BODY_FILE" >>"$combined"
     rm -f "$BODY_FILE"
-    return 1
+  done
+  sentry_bundle_verdict "$combined" "${scripts[*]}" || rc=$?
+  rm -f "$combined"
+  return "$rc"
+}
+
+# --assert-sentry-bundle <js-file> — run sentry_bundle_verdict against a local
+# copy or fixture. Does not fetch production. Exit 0 pass, 1 fail.
+assert_sentry_bundle_file() {
+  local path=$1 detail
+  [[ -n $path ]] || arg_error "--assert-sentry-bundle requires a path to a JavaScript bundle"
+  [[ -f $path && -r $path ]] || arg_error "bundle file is not readable: \"$path\""
+  if detail=$(sentry_bundle_verdict "$path" "$path"); then
+    log "PASS  $detail"
+    return 0
   fi
-  printf 'bundle %s carries a Sentry ingest DSN — error monitoring is live\n' "$bundle"
-  rm -f "$BODY_FILE"
+  log "FAIL  $detail"
+  return 1
 }
 
 # tls_expiry_ok <expiry-epoch> <min-days> [now-epoch]
@@ -738,7 +845,7 @@ self_test() {
   HOST='127.0.0.1'
   HOST_PORT="127.0.0.1:${port}"
 
-  log "Self-test: driving 24 independently-failable assertions across 10 checks on ${BASE_URL}"
+  log "Self-test: driving 26 independently-failable assertions across 10 checks on ${BASE_URL}"
   log "(fixtures use 127.0.0.1 only; the TLS trust-chain assertion remains live-only)"
   log ""
 
@@ -892,15 +999,35 @@ Canonical: https://example.com/security.txt
   self_test_route_scenario "/" 200 "<span>build:</span><b>abc1234</b>"
   self_test_expect pass "served build revision matches the expected deploy" check_revision
 
-  self_test_scenario '{"routes":{"/":{"status":200,"body":"<html><body>no bundle reference</body></html>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
+  # Sentry fixtures carry an ingest HOST + project path, never a key. A full
+  # DSN is credential-shaped even when semi-public; these strings are not.
+  # The pass-direction project id MUST equal EXPECTED_SENTRY_PROJECT_ID —
+  # any other id (including a real sibling project in the same org) is a
+  # failure. The wrong-project fixture uses 4511769883574352, which is a
+  # different project in org automancer, so "any ingest URL" would pass it.
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<html><body>no bundle reference</body></html>"},"/_astro/app.js":{"status":200,"body":"const dsn=o4511673494732800.ingest.de.sentry.io/4511769898647632"}},"default":{"status":404,"body":""}}'
   self_test_expect fail "homepage exposes an Astro JavaScript bundle" check_sentry_live
-  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o4511673494732800.ingest.de.sentry.io/4511769898647632"}},"default":{"status":404,"body":""}}'
   self_test_expect pass "homepage exposes an Astro JavaScript bundle" check_sentry_live
 
   self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"no DSN here"}},"default":{"status":404,"body":""}}'
   self_test_expect fail "bundle contains a Sentry ingest DSN" check_sentry_live
-  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o123456.ingest.sentry.io/4500000000000000"}},"default":{"status":404,"body":""}}'
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o4511673494732800.ingest.de.sentry.io/4511769898647632"}},"default":{"status":404,"body":""}}'
   self_test_expect pass "bundle contains a Sentry ingest DSN" check_sentry_live
+
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o4511673494732800.ingest.de.sentry.io/4511769883574352"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "bundle DSN is the expected Sentry project automancer-site" check_sentry_live
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o4511673494732800.ingest.de.sentry.io/4511769898647632"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "bundle DSN is the expected Sentry project automancer-site" check_sentry_live
+
+  # Rename case: sentry.ts still reads PUBLIC_AUT_SENTRY_WEB_DSN, so a
+  # differently-named CI variable produces a production build with Sentry
+  # tree-shaken out. Only /assets/js/main.js ships. That must fail naming
+  # the variable, not "the page did not render".
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/assets/js/main.js></script>"},"/assets/js/main.js":{"status":200,"body":"console.log(1)"}},"default":{"status":404,"body":""}}'
+  self_test_expect fail "renamed PUBLIC_AUT_SENTRY_WEB_DSN leaves no ingest DSN" check_sentry_live
+  self_test_scenario '{"routes":{"/":{"status":200,"body":"<script src=/_astro/app.js></script>"},"/_astro/app.js":{"status":200,"body":"const dsn=o4511673494732800.ingest.de.sentry.io/4511769898647632"}},"default":{"status":404,"body":""}}'
+  self_test_expect pass "renamed PUBLIC_AUT_SENTRY_WEB_DSN leaves no ingest DSN" check_sentry_live
 
   self_test_expect fail "TLS certificate expiry date is parseable" parse_tls_expiry "notAfter=not-a-date"
   self_test_expect pass "TLS certificate expiry date is parseable" parse_tls_expiry "notAfter=Jan 1 00:00:00 2099 GMT"
@@ -931,13 +1058,19 @@ Canonical: https://example.com/security.txt
     for i in "${SELF_TEST_FAILURES[@]}"; do log "  - $i"; done
     exit 1
   fi
-  log "SELF-TEST RESULT: all 24 locally isolatable assertions across 10 checks can fail AND can pass."
+  log "SELF-TEST RESULT: all 26 locally isolatable assertions across 10 checks can fail AND can pass."
 }
 main() {
   if [[ ${1:-} == '--self-test' ]]; then
     [[ $# -eq 1 ]] || arg_error "--self-test takes no arguments (got $#)"
     preflight
     self_test
+    return
+  fi
+  if [[ ${1:-} == '--assert-sentry-bundle' ]]; then
+    [[ $# -eq 2 ]] || arg_error "--assert-sentry-bundle requires exactly one path (got $# arguments)"
+    preflight
+    assert_sentry_bundle_file "$2"
     return
   fi
   if [[ ${1:-} == '--expected-revision' ]]; then
@@ -970,7 +1103,7 @@ main() {
   if [[ -n $EXPECTED_REVISION ]]; then
     if ! poll_check "homepage serves expected build revision ${EXPECTED_REVISION}" check_revision; then :; fi
   fi
-  if ! poll_check "error monitoring is live (Sentry DSN present in the bundle)" check_sentry_live; then :; fi
+  if ! poll_check "error monitoring is live on Sentry project ${EXPECTED_SENTRY_PROJECT_SLUG} (${EXPECTED_SENTRY_PROJECT_ID})" check_sentry_live; then :; fi
   if ! poll_check "TLS certificate valid and expires >${TLS_MIN_DAYS} days out" check_tls; then :; fi
 
   log ""

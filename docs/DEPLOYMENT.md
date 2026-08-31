@@ -125,19 +125,36 @@ has two consequences:
   looking for secrets.
 - **In production that same guard fails silently.** If the variable is ever
   unset or renamed, the site builds green, deploys green, and error monitoring
-  is simply off. Nothing anywhere reports it.
+  is simply off. A DSN for a *different* Sentry project fails the same way
+  from a visitor's point of view: errors go somewhere nobody is watching.
 
-Verified live 2026-08-22: the deployed bundle contains a real ingest DSN, so
-monitoring is genuinely active. To re-check:
+`ops/verify-production.sh` therefore asserts more than "an ingest URL is
+present". It extracts the numeric project id from the served bundle and
+compares it to a committed constant, `EXPECTED_SENTRY_PROJECT_ID`
+(`4511769898647632`, slug `automancer-site` in org `automancer`). That
+constant is the intended destination, read from the Sentry project catalogue,
+not copied from the CI variable that supplies the DSN — a DSN and an expected
+id taken from the same place would always agree.
+
+A missing DSN and a wrong-project DSN fail distinguishably: the missing case
+names `PUBLIC_AUT_SENTRY_WEB_DSN` (the variable, not the application code);
+the mismatch names the expected id against the id found in the bundle. Neither
+message prints a DSN.
+
+What the constant cannot catch: a change that updates both the committed id
+and the CI DSN to a new project in the same PR. That is a change of intent,
+not a silent misconfiguration.
+
+To re-check without printing a DSN (positive control first):
 
 ```bash
-curl -s https://automancer.uk/ | grep -c 'Automancer'          # positive control first
-js=$(curl -s https://automancer.uk/ | grep -oE '/_astro/[^"]+\.js' | head -1)
-curl -s "https://automancer.uk$js" | grep -cE 'ingest\.(de\.)?sentry\.io'
+curl -s https://automancer.uk/ | grep -c 'Automancer'
+ops/verify-production.sh --assert-sentry-bundle <a-local-copy-of-the-js-bundle>
 ```
 
-The positive control matters: without it, a failed fetch returns zero and reads
-identically to "monitoring is off".
+The production verify job and the uptime cron run the same assertion against
+the live homepage bundle. Do not grep the bundle for an ingest host and treat
+a non-zero count as success — that is the check this replaced.
 
 ## Local verification runs on a different Node major than CI
 
