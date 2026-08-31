@@ -255,6 +255,17 @@ let cachedMeasurements: PageMeasurement[] | null = null;
 
 /** Every emitted .html page in dist/, measured against real bytes on disk. */
 export function measureAllPages(): PageMeasurement[] {
+  // Guard against the whole suite passing while examining nothing.
+  //
+  // tests/performance.test.ts budgets are `for (const p of layoutPages)` and
+  // `pages.flatMap(...)`. If this returned an empty array, every one of those
+  // would pass VACUOUSLY — zero iterations, an empty offenders list, green.
+  // The stub-size check has its own count, but the four layout budgets and the
+  // dangling-asset assertion do not, so an empty dist/ would have proved
+  // nothing while reporting success.
+  //
+  // Same shape as tests/support/dist.ts allHtmlFiles(): belong HERE rather
+  // than in each test, because the risk is shared.
   if (!cachedMeasurements) {
     cachedMeasurements = walk(DIST)
       .filter((f) => f.endsWith('.html'))
@@ -263,6 +274,13 @@ export function measureAllPages(): PageMeasurement[] {
         return measureHtmlFile(f, routeFor(file), file);
       })
       .sort((a, b) => a.route.localeCompare(b.route));
+  }
+  if (cachedMeasurements.length === 0) {
+    throw new Error(
+      `No HTML files found in ${DIST}. The production build produced nothing, so ` +
+        'every page-level assertion in this suite would pass without examining ' +
+        'anything. Run `pnpm run build` and check it succeeded.'
+    );
   }
   return cachedMeasurements;
 }

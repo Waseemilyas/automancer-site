@@ -136,6 +136,24 @@ describe('page-weight budgets', () => {
       );
     }
   });
+
+  it('refuses an empty dist the same way dist.ts does', () => {
+    const distSrc = readFileSync(join(ROOT, 'tests/support/dist.ts'), 'utf8');
+    const perfSrc = readFileSync(join(ROOT, 'tests/support/perf.ts'), 'utf8');
+    expect(
+      distSrc,
+      'dist.ts lost its empty-build throw — restore it, do not weaken perf.ts to match',
+    ).toMatch(/if \(cachedPages\.length === 0\)/);
+    expect(distSrc).toContain('No HTML files found in ${DIST}');
+    expect(
+      perfSrc,
+      'perf.ts must throw on an empty dist/ the way dist.ts does — without this, page-weight budgets pass vacuously',
+    ).toMatch(/if \(cachedMeasurements\.length === 0\)/);
+    expect(perfSrc).toContain('No HTML files found in ${DIST}');
+    expect(perfSrc).toContain(
+      'every page-level assertion in this suite would pass without examining',
+    );
+  });
 });
 
 describe('asset integrity behind the budgets', () => {
