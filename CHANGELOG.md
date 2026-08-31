@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.08.31.1 — 31 August 2026
+
+Agents reading the site now see the same one-week meeting promise that people already see: we promise a meeting within one week of first contact.
+
+
 ## v2026.08.30.1 — 30 August 2026
 
 This release makes the site clearer and easier to use across key visitor journeys.
