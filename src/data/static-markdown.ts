@@ -38,7 +38,7 @@ Automancer builds the software and AI agents that do the boring, expensive, erro
 
 Most consultancies will tell you AI is the future. We handed ours the keys — the finance ops, the project tracking, this website, the field notes. We don't demo automation in a slide deck; we live inside it. A human — Waseem — makes every decision and takes every call.
 
-- **Finance, on autopilot** — agents run the invoicing, reconciliation and bookkeeping ops. Waseem approves.
+- **Finance, watched daily** — agents track every pound of spend by account and prepare the invoices. Waseem approves and issues them. The bookkeeping is still done by hand.
 - **Self-tracking delivery** — every project lane is governed and monitored by agents, board-gated before anything touches a client.
 - **This site & blog** — written, built and maintained by the same agents we'd put to work in your business.
 - **One human in the loop** — every decision. Every call. No call centre, no "your ticket is important to us".
