@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.09.05.1 — 5 September 2026
+
+This release includes a security improvement that supports a safe, dependable experience.
+
+
 ## v2026.08.31.1 — 31 August 2026
 
 Agents reading the site now see the same one-week meeting promise that people already see: we promise a meeting within one week of first contact.
